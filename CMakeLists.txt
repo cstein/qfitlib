@@ -1,0 +1,62 @@
+cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
+
+project(QFITLIB Fortran)
+
+set(CMAKE_MODULE_PATH
+    ${CMAKE_MODULE_PATH}
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake
+    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/math
+    )
+
+include(ConfigParentSettings)
+
+if(NOT CMAKE_Fortran_MODULE_DIRECTORY)
+    set(CMAKE_Fortran_MODULE_DIRECTORY
+        ${PROJECT_BINARY_DIR}/modules)
+endif()
+
+include_directories(
+${CMAKE_Fortran_MODULE_DIRECTORY}
+)
+
+if(NOT CMAKE_BUILD_TYPE)
+    set(CMAKE_BUILD_TYPE
+        Debug
+        CACHE STRING
+        "Choose the type of build, options are: None Debug Release."
+        FORCE
+        )
+endif()
+
+option(ENABLE_AUTO_BLAS      "Enable CMake to autodetect BLAS"                  ON)
+option(ENABLE_AUTO_LAPACK    "Enable CMake to autodetect LAPACK"                ON)
+
+include(ConfigCompilerFlags)
+include(ConfigMath)
+
+set(SOURCES_LIBRARY
+    ${PROJECT_SOURCE_DIR}/src/connolly.F90
+    ${PROJECT_SOURCE_DIR}/src/linear_solver.F90
+    ${PROJECT_SOURCE_DIR}/src/qfit_input_readers.F90
+    ${PROJECT_SOURCE_DIR}/src/qfit_variables.F90
+    ${PROJECT_SOURCE_DIR}/src/qfit_precision.F90
+    ${PROJECT_SOURCE_DIR}/src/qfit_integrals.F90
+    ${PROJECT_SOURCE_DIR}/src/qfit_utilities.F90
+    ${PROJECT_SOURCE_DIR}/src/qfit_io.F90
+    )
+
+set(TOOLS_GRID
+    ${PROJECT_SOURCE_DIR}/tools/grid.F90
+    )
+
+set(TOOLS_SOLVER
+    ${PROJECT_SOURCE_DIR}/tools/solver.F90
+    )
+
+add_library(qfitlib ${SOURCES_LIBRARY})
+add_executable(grid ${TOOLS_GRID})
+add_executable(solver ${TOOLS_SOLVER})
+target_link_libraries (grid qfitlib ${EXTERNAL_LIBS})
+target_link_libraries (solver qfitlib ${EXTERNAL_LIBS})
+
+install(TARGETS qfitlib ARCHIVE DESTINATION lib)
