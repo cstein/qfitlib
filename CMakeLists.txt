@@ -35,6 +35,7 @@ include(ConfigCompilerFlags)
 include(ConfigMath)
 
 set(SOURCES_LIBRARY
+    ${PROJECT_SOURCE_DIR}/src/qfit.F90
     ${PROJECT_SOURCE_DIR}/src/connolly.F90
     ${PROJECT_SOURCE_DIR}/src/linear_solver.F90
     ${PROJECT_SOURCE_DIR}/src/qfit_input_readers.F90

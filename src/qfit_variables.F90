@@ -18,9 +18,11 @@ module qfit_variables
     ! Storage of nuclear coordinates and charges
     !
     !> nuclear charges
-    integer, save, allocatable, dimension(:) :: Zm
+    real(dp), save, allocatable, dimension(:) :: Zm
     !> nuclear coordinates
     real(dp), save, allocatable, dimension(:,:) :: Rm
+    !> the number of nuclei
+    integer, save :: nnuclei
 
     !
     ! Run-time settings to be read in from input
@@ -40,7 +42,17 @@ module qfit_variables
     !> the number of layers to include
     integer, save :: qfit_nlayer = 4
     !> the density of points on the sphere
-    real(dp), save :: qfit_pointdensity = 0.28_dp
+    real(dp), save :: qfit_pointdensity = 1.0_dp
+
+    !
+    ! runtime variables
+    !
+    !> the maximum number of points in a layer
+    integer, save, allocatable, dimension(:) :: max_layer_points
+    !> the number of points that are in a layer
+    integer, save, allocatable, dimension(:) :: n_layer_points
+    !> the total number of points for all layers
+    integer, save :: n_total_points
 
     ! constants
     !> @f$ \pi @f$
