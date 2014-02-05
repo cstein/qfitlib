@@ -27,6 +27,7 @@ module qfit_input_readers
 !! @param[in] lupri
 subroutine dalton_input(word, luinp, lupri)
 
+    use qfit_variables
     use qfit_io, only : change_case
 
     character(len=7), intent(inout) :: word
@@ -37,20 +38,15 @@ subroutine dalton_input(word, luinp, lupri)
 
     luout = lupri
 
+    qfitrun = .true.
+
     ! now parse the .dal file properly
     do
         read(luinp,'(a7)') option
         call change_case(option)
 
-        ! check to see if we really are running a many-body calculation
-        if (trim(option(2:)) == 'QFIT') then
-            mbrun = .true.
-
-        else if (.not. mbrun) then
-            cycle
-
         ! read in fragment charges
-        else if (trim(option(2:)) == 'CONSTR') then
+        if (trim(option(2:)) == 'CONSTR') then
             read(luinp,*) option
             call change_case(option)
             if (option == 'CHARGE' .or. &
@@ -101,7 +97,7 @@ subroutine dalton_input(word, luinp, lupri)
         else if (option(1:1) == '!' .or. option(1:1) == '#') then
             cycle
         else
-            write(luout,*) 'Unknown option:', option, ' in *MB.'
+            write(luout,*) 'Unknown option:', option, ' in *QFIT'
         end if
     end do
 

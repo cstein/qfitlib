@@ -80,7 +80,7 @@ if __name__ == '__main__':
     ax = fig.add_subplot(111, projection='3d')
 
     for i in range(4):
-        full_grid = grid(16, R, Z, 1.4+i*0.2)
+        full_grid = grid(48, R, Z, 1.4+i*0.2)
         x,y,z = full_grid.transpose()
         ax.scatter(x,y,z,alpha=alphas[i],color=colors[i])
 
