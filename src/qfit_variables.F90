@@ -42,7 +42,7 @@ module qfit_variables
     !> the number of layers to include
     integer, save :: qfit_nlayer = 4
     !> the density of points on the sphere
-    real(dp), save :: qfit_pointdensity = 1.0_dp
+    real(dp), save :: qfit_pointdensity = 0.28_dp
 
     !
     ! runtime variables
@@ -57,7 +57,9 @@ module qfit_variables
     ! constants
     !> @f$ \pi @f$
     real(dp), parameter :: pi = 3.141592653589793_dp
-    real(dp), parameter :: aa2au = 1.0_dp / 0.5291772109217_dp
+    real(dp), parameter :: zero = 0.0_dp
+    real(dp), parameter :: one = 1.0_dp
+    real(dp), parameter :: aa2au = one / 0.5291772109217_dp
     ! van der waal radii for the elements
     real(dp), parameter, dimension(16) :: vdw_radii = (/ &
         & 1.2d0, 0.0d0, 0.0d0, 0.0d0, &

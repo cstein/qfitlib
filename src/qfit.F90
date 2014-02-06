@@ -51,11 +51,13 @@ subroutine fit_density(density)
 
     real(dp), dimension(:,:), allocatable :: wrk
     real(dp), dimension(:), allocatable :: integrals
-    integer :: ntotalpoints, ntruepoints, n, nnbasx, m
+    integer :: ntotalpoints, ntruepoints, n, nnbasx, m, k
 
     real(dp), dimension(:), allocatable :: V
     real(dp), dimension(3) ::  dr
-    real(dp) :: Rnm
+    real(dp) :: Rnk, Rmk
+    real(dp), dimension(:,:), allocatable :: A
+    real(dp), dimension(:), allocatable :: B
 
     ! populates the max_layer_points array for memory management
     ! this requires that options have been set.
@@ -76,22 +78,57 @@ subroutine fit_density(density)
     write(luout, '(i4)') ntruepoints
     write(luout,*)
     do n = 1, ntruepoints
-        write(luout,'(a,f20.9,2f16.9)') 'XX',wrk(:,n)
+        !write(luout,'(a,f20.9,2f16.9)') 'XX',wrk(:,n)
     enddo
+
+    allocate( A( nnuclei, nnuclei ) )
+    A = zero
+    allocate( B( nnuclei ) )
+    B = zero
 
     nnbasx = size( density )
     allocate( integrals( nnbasx ) )
+    integrals = zero
     allocate( V( ntruepoints ) )
-    V = 0.0_dp
+    V = zero
 
-    do n = 1, ntruepoints
+    ! first determine the total potential
+    ! todo: separate into own function
+    do m = 1, nnuclei
+       do k = 1, ntruepoints
+           dr = Rm(:,m) - wrk(:,k)
+           Rmk = sqrt( dot( dr, dr ) )
 
-        do m = 1, nnuclei
-            dr = wrk(:,n) - Rm(:,m)
-            Rnm = sqrt(dot( dr, dr ))
-            call one_electron_integrals(Zm, Rm, integrals )
-            V(n) = dot( density, integrals ) / Rnm
-        enddo
+           ! call one_electron_integrals( )
+           ! nuclear part + electronic part
+           V(k) = V(k) + Zm(m) / Rmk
+           V(k) = V(k) + dot( density, integrals )
+       enddo
+    enddo
+
+    do m = 1, nnuclei
+       do k = 1, ntruepoints
+           dr = Rm(:,m) - wrk(:,k)
+           Rmk = sqrt( dot( dr, dr ) )
+
+           ! take care of the RHS of the linear equations
+           B(m) = B(m) + V(k) / Rmk
+
+           do n = 1, nnuclei
+               dr = Rm(:,n) - wrk(:,k)
+               Rnk = sqrt( dot( dr, dr ) )
+               A(m,n) = A(m,n) + one / (Rmk * Rnk)
+           enddo
+       enddo
+    enddo
+
+    do m = 1, nnuclei
+         write(luout, *) (A(m,n),n=1,nnuclei)
+    enddo
+
+    write(luout,*)
+    do m = 1, nnuclei
+         write(luout,*) B(m)
     enddo
 
     deallocate( integrals )
