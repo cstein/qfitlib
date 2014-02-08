@@ -38,12 +38,12 @@ set(SOURCES_LIBRARY
     ${PROJECT_SOURCE_DIR}/src/qfit.F90
     ${PROJECT_SOURCE_DIR}/src/connolly.F90
     ${PROJECT_SOURCE_DIR}/src/linear_solver.F90
-    ${PROJECT_SOURCE_DIR}/src/qfit_input_readers.F90
-    ${PROJECT_SOURCE_DIR}/src/qfit_variables.F90
-    ${PROJECT_SOURCE_DIR}/src/qfit_precision.F90
-    ${PROJECT_SOURCE_DIR}/src/qfit_integrals.F90
-    ${PROJECT_SOURCE_DIR}/src/qfit_utilities.F90
-    ${PROJECT_SOURCE_DIR}/src/qfit_io.F90
+    ${PROJECT_SOURCE_DIR}/src/input_readers.F90
+    ${PROJECT_SOURCE_DIR}/src/global_variables.F90
+    ${PROJECT_SOURCE_DIR}/src/precision.F90
+    ${PROJECT_SOURCE_DIR}/src/integrals.F90
+    ${PROJECT_SOURCE_DIR}/src/utilities.F90
+    ${PROJECT_SOURCE_DIR}/src/io.F90
     )
 
 set(TOOLS_GRID
