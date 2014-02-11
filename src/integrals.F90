@@ -40,7 +40,7 @@ module qfit_integrals
 subroutine one_electron_integrals(charges, coords, integrals)
 
     real(dp), intent(in), dimension(:) :: charges
-    real(dp), intent(in), dimension(:,:) :: coords
+    real(dp), intent(in), dimension(3) :: coords
     real(dp), dimension(:), intent(out) :: integrals
 
     integrals = 0.0d0
@@ -58,7 +58,7 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
     use gen1int_api
 
     real(dp), intent(in), dimension(:) :: charges
-    real(dp), intent(in), dimension(:,:) :: coords
+    real(dp), intent(in), dimension(3) :: coords
     real(dp), dimension(:), intent(out) :: integrals
 
     ! -- GEN1INT VARIABLES --
@@ -88,12 +88,14 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
     integer :: nat, nnbas
     integer, dimension(:), allocatable :: nuclei
     real(dp), dimension(:), allocatable :: real_charges
+    real(dp), dimension(3,1) :: real_coords
 
     integrals = 0.0d0
     nnbas = size(integrals)
 
     ! treat the nuclei as non-nuclei because we want to also
     ! be able to evaluate other types of atomic charges
+    real_coords(:,1) = coords
     nat = size(charges)
     allocate(nuclei(nat))
     allocate(real_charges(nat))
@@ -111,7 +113,7 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
                        one_prop=prop_operator,   &
                        info_prop=ierr,           &
                        idx_nuclei=nuclei,        &
-                       coord_nuclei=coords,      &
+                       coord_nuclei=real_coords,      &
                        charge_nuclei=real_charges,     &
                        order_geo_pot=0)
 

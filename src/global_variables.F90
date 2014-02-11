@@ -23,6 +23,8 @@ module qfit_variables
     real(dp), save, allocatable, dimension(:,:) :: Rm
     !> the number of nuclei
     integer, save :: nnuclei
+    !> total charge of the molecule
+    integer, save :: total_charge
 
     !
     ! Run-time settings to be read in from input
@@ -30,11 +32,11 @@ module qfit_variables
     !> unit to write to for output (default is stdout)
     integer, save :: luout = 6
     !> bitwise additive option for constraints
-    !> 0: charges
-    !> 1: dipole
-    !> 2: quadrupole
-    !> default: 0. To select charges and dipoles, use 0+1 = 1
-    integer, save :: qfit_constraint = 0
+    !> 1: charges
+    !> 2: dipole
+    !> 4: quadrupole
+    !> default: 1. To select charges and dipoles, use 1+2 = 3
+    integer, save :: qfit_constraint = 1
     !> the scaling factor for the van der waal radii
     real(dp), save :: qfit_vdwscale = 1.4_dp
     !> the increment in scaling factor for each layer
@@ -53,6 +55,8 @@ module qfit_variables
     integer, save, allocatable, dimension(:) :: n_layer_points
     !> the total number of points for all layers
     integer, save :: n_total_points
+    !> the resulting charges
+    real(dp), save, allocatable, dimension(:) :: fitted_charges
 
     ! constants
     !> @f$ \pi @f$

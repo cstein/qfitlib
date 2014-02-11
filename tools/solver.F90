@@ -14,7 +14,7 @@ A(2,:) = (/ 5.0d0, 7.0d0, -5.0d0/)
 A(3,:) = (/ 1.0d0, 4.0d0, -2.0d0/)
 b(:) = (/6.0d0, 6.0d0, 8.0d0/)
 
-call solve(A,b,x)
+call linear_solve(A,b,x)
 
 print '(3f9.4)', x
 

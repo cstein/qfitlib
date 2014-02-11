@@ -20,9 +20,9 @@ R = R * aa2au
 
 dum = 1.0_dp
 
-call qfit_initialize( R, Z )
-call fit_density( dum )
-call qfit_finalize()
+!call qfit_initialize( R, Z )
+!call fit_density( dum )
+!call qfit_finalize()
 
 
 end program test

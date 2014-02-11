@@ -10,11 +10,11 @@ module linear_solver
 
     private
 
-    public :: solve
+    public :: linear_solve
 
 contains
 
-subroutine solve( A, b, x )
+subroutine linear_solve( A, b, x )
 
     real(dp), dimension(:,:), intent(in) :: A
     real(dp), dimension(:), intent(in) :: b
@@ -53,6 +53,6 @@ subroutine solve( A, b, x )
     deallocate( ipiv )
     deallocate( wrk )
 
-end subroutine solve
+end subroutine linear_solve
 
 end module linear_solver
