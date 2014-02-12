@@ -54,10 +54,10 @@ subroutine connolly_initialize( R, Z )
     allocate( Rm(3,nnuclei) )
     Rm = R
 
-    allocate( max_layer_points( qfit_nlayer ) )
+    allocate( max_layer_points( qfit_nshell ) )
     max_layer_points = 0
 
-    allocate( n_layer_points( qfit_nlayer ) )
+    allocate( n_layer_points( qfit_nshell ) )
     n_layer_points = 0
 
     ! points to include in the final coordinate list:
@@ -93,7 +93,7 @@ subroutine connolly_grid( coordinates, ntruepoints )
 
     coordinates = 0.0_dp
     ioffs = 1
-    do ilayer = 1, qfit_nlayer
+    do ilayer = 1, qfit_nshell
         rscal = qfit_vdwscale + (ilayer-1)*qfit_vdwincrement
         ioffe = ioffs + max_layer_points(ilayer)
 
@@ -298,7 +298,7 @@ subroutine connolly_grid_count
     integer :: ilayer, iatom, pp, np
     real(dp) :: rscal, radfin
 
-    do ilayer = 1, qfit_nlayer
+    do ilayer = 1, qfit_nshell
         rscal = qfit_vdwscale + (ilayer-1)*qfit_vdwincrement
         do iatom = 1, size(Zm)
             radfin = vdw_radii( int(Zm(iatom)) ) * aa2au * rscal

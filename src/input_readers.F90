@@ -76,8 +76,8 @@ subroutine dalton_input(word, luinp, lupri)
             read(luinp,*) qfit_vdwincrement
 
         ! whether or not to use atomic charges for embedding
-        else if (trim(option(2:)) == 'NLAYER') then
-            read(luinp,*) qfit_nlayer
+        else if (trim(option(2:)) == 'NSHELL') then
+            read(luinp,*) qfit_nshell
 
         ! whether or not to use atomic charges for embedding
         else if (trim(option(2:)) == 'PTDENS') then

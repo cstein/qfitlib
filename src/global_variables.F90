@@ -42,7 +42,7 @@ module qfit_variables
     !> the increment in scaling factor for each layer
     real(dp), save :: qfit_vdwincrement = 0.2_dp
     !> the number of layers to include
-    integer, save :: qfit_nlayer = 4
+    integer, save :: qfit_nshell = 4
     !> the density of points on the sphere
     real(dp), save :: qfit_pointdensity = 0.28_dp
 

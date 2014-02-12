@@ -57,13 +57,13 @@ subroutine qfit_print_info
 
     use qfit_variables
 
-    write(luout, 10) qfit_nlayer
+    write(luout, 10) qfit_nshell
     write(luout, 11) qfit_vdwscale, qfit_vdwincrement
     write(luout, 12) qfit_pointdensity
     if (qfit_verbose) write(luout,'(/10x,a)') 'Verbose mode enabled.'
     if (qfit_debug) write(luout,'(/10x,a)') 'Debug mode enabled.'
 
- 10 format(/10x,'Uses', i2, ' layers of points around the molecule.')
+ 10 format(/10x,'Uses', i2, ' shells of points around the molecule.')
  11 format(/10x,'Each layer is scaled by', f4.1, ' plus an additional', f4.1, &
    &       /10x,'for each successive layer.')
  12 format(/10x,'Point density is ', f4.2, ' au^-2.')
