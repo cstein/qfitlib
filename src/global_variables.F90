@@ -25,13 +25,17 @@ module qfit_variables
     integer, save :: nnuclei
     !> total charge of the molecule
     integer, save :: total_charge
+    ! total dipole of the molecule
+    real(dp), dimension(3), save :: total_dipole
 
     !
     ! Run-time settings to be read in from input
     !
     !> unit to write to for output (default is stdout)
     integer, save :: luout = 6
+
     !> bitwise additive option for constraints
+    !> 0: nothing
     !> 1: charges
     !> 2: dipole
     !> 4: quadrupole
