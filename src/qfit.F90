@@ -14,6 +14,7 @@ module qfit
     public :: qfit_initialize
     public :: qfit_finalize
     public :: qfit_print_info
+    public :: qfit_get_results
 
     contains
 
@@ -24,16 +25,21 @@ module qfit
 !! @param[in] R the coordinates of all nuclei
 !! @param[in] Z the nuclear charges of the nuclei
 !! @param[in] Q the total charge of the molecule
-subroutine qfit_initialize(R, Z, Q)
+subroutine qfit_initialize(R, Z, Q, D, RCM)
 
     use connolly
 
     real(dp), dimension(:,:), intent(in) :: R
     real(dp), dimension(:), intent(in) :: Z
     integer, intent(in) :: Q
+    real(dp), dimension(3), intent(in) :: D
+    real(dp), dimension(3), intent(in) :: RCM
 
     call connolly_initialize( R, Z )
     total_charge = Q
+    total_dipole = D
+    center_of_mass = RCM
+    allocate( fitted_charges(size(Z)) )
 
 end subroutine
 
@@ -45,6 +51,7 @@ subroutine qfit_finalize
 
     use connolly
 
+    deallocate( fitted_charges )
     call connolly_finalize
 
 end subroutine
@@ -60,6 +67,12 @@ subroutine qfit_print_info
     write(luout, 10) qfit_nshell
     write(luout, 11) qfit_vdwscale, qfit_vdwincrement
     write(luout, 12) qfit_pointdensity
+    if (qfit_constraint .eq. 0) then
+        write(luout,'(/10x,a)') 'WARNING: No constraints on charges imposed.'
+    else
+        if (iand(1,qfit_constraint).eq.1) write(luout, 13)
+        if (iand(2,qfit_constraint).eq.2) write(luout, 14)
+    endif
     if (qfit_verbose) write(luout,'(/10x,a)') 'Verbose mode enabled.'
     if (qfit_debug) write(luout,'(/10x,a)') 'Debug mode enabled.'
 
@@ -67,6 +80,18 @@ subroutine qfit_print_info
  11 format(/10x,'Each layer is scaled by', f4.1, ' plus an additional', f4.1, &
    &       /10x,'for each successive layer.')
  12 format(/10x,'Point density is ', f4.2, ' au^-2.')
+ 13 format(/10x,'Constraining partial charges to reproduce the', &
+   &       /10x,'total molecular charge.')
+ 14 format(/10x,'Constraining partial charges to reproduce the', &
+           /10x,'total permanet molecular dipole.')
+
+end subroutine
+
+subroutine qfit_get_results( charges )
+
+    real(dp), dimension(:), intent(out) :: charges
+
+    charges = fitted_charges(1:nnuclei)
 
 end subroutine
 
@@ -76,7 +101,7 @@ end subroutine
 !! @author Casper Steinmann
 !! @param[in] density the density of the molecule
 !! @param[out] charges the fitted charges
-subroutine fit_density(density, charges)
+subroutine fit_density(density)
 
     use connolly
     use qfit_integrals
@@ -84,7 +109,7 @@ subroutine fit_density(density, charges)
     use linear_solver
 
     real(dp), dimension(:), intent(in) :: density
-    real(dp), dimension(:), intent(out) :: charges
+    !real(dp), dimension(:), intent(out) :: charges
 
     ! local arrays
     real(dp), dimension(:,:), allocatable :: wrk
@@ -97,9 +122,15 @@ subroutine fit_density(density, charges)
     real(dp) :: Rnk, Rmk
     real(dp), dimension(3) ::  dr
     real(dp), dimension(1) :: q_one
+    real(dp), dimension(:), allocatable :: charges
     integer :: ntotalpoints, ntruepoints
     integer :: n, m, k
     integer :: ioff, nconstraints, nnbasx
+    logical :: constrain_charges, constrain_dipoles
+
+    ! set constraints based on options
+    constrain_charges = iand(1,qfit_constraint) .ne. 0
+    constrain_dipoles = iand(2,qfit_constraint) .ne. 0
 
     ! populates the max_layer_points array for memory management
     ! this requires that options have been set.
@@ -115,7 +146,9 @@ subroutine fit_density(density, charges)
     V = zero
 
     ! obtain the number of constraints we need to take into account
-    nconstraints = 1 ! currently hardcoded for charges
+    nconstraints = 0
+    if (constrain_charges) nconstraints = nconstraints +1 ! charges
+    if (constrain_dipoles) nconstraints = nconstraints +3 ! dipoles
 
     ! allocate space for setting up the linear system
     allocate( A( nnuclei+nconstraints, nnuclei+nconstraints ) )
@@ -124,8 +157,10 @@ subroutine fit_density(density, charges)
     b = zero
 
     ! allocate space for the charges
-    allocate( fitted_charges( nnuclei + nconstraints ) )
-    fitted_charges = zero
+    allocate( charges( nnuclei + nconstraints ) )
+    charges = zero
+
+    ! this is the test charge we use to evaluate the electrostatic potential
     q_one = one
 
     ! integral memory
@@ -165,12 +200,22 @@ subroutine fit_density(density, charges)
     ! todo: this needs to be done way more cleverly
     do m = 1, nconstraints
         ioff = m+nnuclei
+
         ! constrain total charge to be constant
-        if( m .eq. 1 ) then
+        if( m .eq. 1 .and. constrain_charges ) then
             b(ioff) = total_charge
             do n=1,nnuclei
                 A(ioff,n) = one
                 A(n,ioff) = one
+            enddo
+        endif
+
+        ! also constrain dipole
+        if ( m .gt. 1 .and. m .le. 4 .and. constrain_dipoles ) then
+            b(ioff) = total_dipole(m-1)
+            do n=1,nnuclei
+                A(ioff,n) = Rm(m-1,n) - center_of_mass(m-1)
+                A(n,ioff) = Rm(m-1,n) - center_of_mass(m-1)
             enddo
         endif
     enddo
@@ -189,23 +234,16 @@ subroutine fit_density(density, charges)
         enddo
     endif
 
-    ! solve Ax = b
-    call linear_solve( A, b, fitted_charges )
+    ! solve Ax = b using SVD
+    call linear_solve_svd( A, b, charges )
 
-    !write(luout,*)
-    !write(luout,*) 'Density fitted charges'
-    !do m = 1, nnuclei
-        !write(luout,'(i4,f9.3)') m, fitted_charges(m)
-    !enddo
-    !write(luout,'(a,f9.3)') ' sum =', sum( fitted_charges(1:nnuclei) )
+    fitted_charges = charges(1:nnuclei)
 
-    charges = fitted_charges(1:nnuclei)
-
+    deallocate( charges )
     deallocate( integrals )
     deallocate( V )
     deallocate( A )
     deallocate( b )
-    deallocate( fitted_charges )
     deallocate( wrk )
 
 end subroutine fit_density

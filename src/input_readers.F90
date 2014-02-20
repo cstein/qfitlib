@@ -49,22 +49,27 @@ subroutine dalton_input(word, luinp, lupri)
         if (trim(option(2:)) == 'CONSTR') then
             read(luinp,*) option
             call change_case(option)
-            if (option == 'CHARGE' .or. &
+            if (option == 'NONE' .or. &
+            &   option == 'CHARGE' .or. &
             &   option == 'DIPOLE' .or. &
             &   option == 'QUPOLE') then
+
+                if (option == 'NONE') then
+                    qfit_constraint = 0
+                endif
 
                 ! default is 1 which means charge
                 if (option == 'DIPOLE') then
                     qfit_constraint = 3 ! 1 + 2
                 endif
 
-                if (option == 'QUPOLE') then
-                    qfit_constraint = 7 ! 1 + 2 + 4
-                endif
+                !if (option == 'QUPOLE') then
+                !    qfit_constraint = 7 ! 1 + 2 + 4
+                !endif
 
             else
                 write(luout,*) 'Constraint not recognized. Please use one of:'
-                write(luout,*) '    CHARGE, DIPOLE or QUPOLE'
+                write(luout,*) '    NONE, CHARGE, DIPOLE'
             endif
 
         ! read atom indices in fragments. dummy read the number of atoms
