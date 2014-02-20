@@ -25,8 +25,10 @@ module qfit_variables
     integer, save :: nnuclei
     !> total charge of the molecule
     integer, save :: total_charge
-    ! total dipole of the molecule
+    !> total dipole of the molecule
     real(dp), dimension(3), save :: total_dipole
+    !> center of mass of the molecule
+    real(dp), dimension(3), save :: center_of_mass
 
     !
     ! Run-time settings to be read in from input

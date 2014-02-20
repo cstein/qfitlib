@@ -25,7 +25,7 @@ module qfit
 !! @param[in] R the coordinates of all nuclei
 !! @param[in] Z the nuclear charges of the nuclei
 !! @param[in] Q the total charge of the molecule
-subroutine qfit_initialize(R, Z, Q, D)
+subroutine qfit_initialize(R, Z, Q, D, RCM)
 
     use connolly
 
@@ -33,10 +33,12 @@ subroutine qfit_initialize(R, Z, Q, D)
     real(dp), dimension(:), intent(in) :: Z
     integer, intent(in) :: Q
     real(dp), dimension(3), intent(in) :: D
+    real(dp), dimension(3), intent(in) :: RCM
 
     call connolly_initialize( R, Z )
     total_charge = Q
     total_dipole = D
+    center_of_mass = RCM
     allocate( fitted_charges(size(Z)) )
 
 end subroutine
@@ -207,6 +209,15 @@ subroutine fit_density(density)
                 A(n,ioff) = one
             enddo
         endif
+
+        ! also constrain dipole
+        if ( m .gt. 1 .and. m .le. 4 .and. constrain_dipoles ) then
+            b(ioff) = total_dipole(m-1)
+            do n=1,nnuclei
+                A(ioff,n) = Rm(m-1,n) - center_of_mass(m-1)
+                A(n,ioff) = Rm(m-1,n) - center_of_mass(m-1)
+            enddo
+        endif
     enddo
 
     if (qfit_debug) then
@@ -223,18 +234,12 @@ subroutine fit_density(density)
         enddo
     endif
 
-    ! solve Ax = b
-    call linear_solve( A, b, charges )
-
-    !write(luout,*)
-    !write(luout,*) 'Density fitted charges'
-    !do m = 1, nnuclei
-        !write(luout,'(i4,f9.3)') m, fitted_charges(m)
-    !enddo
-    !write(luout,'(a,f9.3)') ' sum =', sum( fitted_charges(1:nnuclei) )
+    ! solve Ax = b using SVD
+    call linear_solve_svd( A, b, charges )
 
     fitted_charges = charges(1:nnuclei)
 
+    deallocate( charges )
     deallocate( integrals )
     deallocate( V )
     deallocate( A )
