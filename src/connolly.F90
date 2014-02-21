@@ -60,12 +60,6 @@ subroutine connolly_initialize( R, Z )
     allocate( n_layer_points( qfit_nshell ) )
     n_layer_points = 0
 
-    ! points to include in the final coordinate list:
-    ! we need to allocate [point_include] after settings have been read in
-    ! see connolly grid count
-    !allocate( point_include( max_layer_points ) )
-    !point_include = 1
-
 end subroutine
 
 !------------------------------------------------------------------------------
@@ -82,6 +76,15 @@ subroutine connolly_finalize
 
 end subroutine connolly_finalize
 
+!------------------------------------------------------------------------------
+!> @brief Generates a connolly grid stored in the coordinates storage. Only the
+!!        first ntruepoints are usable
+!!
+!! @author Casper Steinmann
+!! @param coordinates storage for coordinates of a connolly grid. This must be
+!!                    large enough to hold all points from all spheres
+!! @param ntruepoints the coordinates 1 through ntruepoints are the true
+!!                    coordinates to be used for the grid
 subroutine connolly_grid( coordinates, ntruepoints )
 
     real(dp), dimension(:,:), intent(out) :: coordinates
@@ -92,16 +95,13 @@ subroutine connolly_grid( coordinates, ntruepoints )
     integer :: nlayerpoints, ioffs, ioffe
 
     coordinates = 0.0_dp
+
+    ! loop over each layer, generating coordinates and storing them
+    ! subsequently in the coordinates array.
     ioffs = 1
     do ilayer = 1, qfit_nshell
         rscal = qfit_vdwscale + (ilayer-1)*qfit_vdwincrement
         ioffe = ioffs + max_layer_points(ilayer)
-
-        !if (qfit_debug) then
-        !    write(luout,*)
-        !    write(luout,'(a,i6,f6.2,2i6)') 'calculating grid for layer [GRID]:', &
-        !                               & ilayer, rscal, ioffs, ioffe-1
-        !endif
 
         call connolly_grid_layer( rscal, coordinates(:,ioffs:ioffe-1), &
                & point_include(ioffs:ioffe-1), nlayerpoints )
@@ -116,11 +116,11 @@ subroutine connolly_grid( coordinates, ntruepoints )
     do ifrom = 1,size(coordinates,2)
         if (point_include(ifrom) == 1) then
             coordinates(:,ito) = coordinates(:,ifrom)
-            !if (qfit_debug) write(luout,'(a,3i4)') 'transfer [GRID]', ifrom, ito
             ito = ito +1
         endif
     enddo
 
+    ! just to be sure that some stupid mistake did not happen
     if ( ntruepoints /= ito-1 ) then
         write(luout,*) "ERROR: grid points could not be transferred correctly"
         stop
@@ -129,22 +129,22 @@ subroutine connolly_grid( coordinates, ntruepoints )
 end subroutine
 
 !------------------------------------------------------------------------------
-!> @brief Generates the grids for the nuclei specified in connolly_init
+!> @brief Generates the grids for a single layer
 !!
 !! @author Casper Steinmann
 !!
-!! @param[in] rscal scaling factor for the grid
-!! @param[in] coordinates coordinates for @b all points an @b all spheres. 
-!! @param[out] n the number of non overlapping points. Obtained by a call to 
-!!             connolly_coordinates
-!! @todo convert to bohr
+!! @param[in] rscal scaling factor for the grid for the current layer
+!! @param[in] coordinates coordinates for @b all points on @b all spheres for
+!!                        the current layer 
+!! @param[inout] pinc list of indices whether or not a point in coordinates
+!!                    should be included or not
+!! @param[out] ntruepoints the number of non overlapping points.
 subroutine connolly_grid_layer( rscal, coordinates, pinc, ntruepoints )
 
     real(dp), intent(in) :: rscal
     real(dp), dimension(:,:), intent(out) :: coordinates
     integer, dimension(:), intent(inout) :: pinc
     integer, intent(out) :: ntruepoints
-
 
     integer :: m, i, n
     integer :: npoints, ipoint
@@ -158,11 +158,14 @@ subroutine connolly_grid_layer( rscal, coordinates, pinc, ntruepoints )
     ntruepoints = 0
     ioffset = 0
 
+    ! generate a unit sphere for each nuclei for a given layer
     do m = 1, nnuclei
+
+        ! get ready to store the raw coordinates in temporary storage. Because
+        ! of the density parameter this is not always constant.
         rmscal = vdw_radii( int(Zm(m)) ) * aa2au * rscal
         pp = int(4.0_dp * pi * rmscal * rmscal * qfit_pointdensity)
         call connolly_grid_sphere_count(pp, npoints)
-        !write(luout,'(a,i6,a,f6.2,3i6)') '   nuclei', m, ' Rm =', rmscal, pp, npoints, ioffset
         allocate( points(3, npoints) )
 
         ! generate a unit sphere, scale it and translate it
@@ -170,16 +173,15 @@ subroutine connolly_grid_layer( rscal, coordinates, pinc, ntruepoints )
         points = points * rmscal
         do i = 1, npoints
             ! translate each point on the surface to where it belongs
-            !write(luout,'(a,i4,3f12.6)') 'i',m,Rm(:,m)
             points(:,i) = Rm(:,m) - points(:,i)
 
             ! transfer to work array
             coordinates(:,i+ioffset) = points(:,i)
-            !write(luout,'(a,2i6)') '      point', i, i+ioffset
         enddo
 
         do i = 1, npoints
-        !    ! check that a point is not within the boundary of neighbouring nuclei
+
+            ! check that a point is not within the boundary of neighbouring nuclei
             ncontact = 1
             do n = 1, nnuclei
                 if (m == n) cycle
@@ -188,11 +190,11 @@ subroutine connolly_grid_layer( rscal, coordinates, pinc, ntruepoints )
                 dr  = points(:,i) - Rm(:,n)
                 dr2 = dot(dr, dr)
                 if (dr2 < rnscal**2) then
-        !            !write(luout,'(a,2i4,f9.6)') 'PP',m,n,dr2
                     ncontact = ncontact +1
                 endif
             enddo
 
+            ! if the point is too close to a nuclei, discard it
             if (ncontact > 1) then
                 pinc(i+ioffset) = 0
             else
@@ -243,7 +245,7 @@ subroutine connolly_sphere( ntes, coordinates )
 
         ! assign z-value now. The subroutine connollu_orth_circle will populate x and y
         r_full(3,:) = z
-        call full(xy, r_full)
+        call complete_sphere(xy, r_full)
 
         ! copy the calculated points on the sphere into the coordinate list
         coordinates(:,io:io+nbo-1) = r_full
@@ -293,6 +295,11 @@ subroutine connolly_grid_sphere_count(npoints, nelems)
 
 end subroutine connolly_grid_sphere_count
 
+!------------------------------------------------------------------------------
+!> @brief evaluates the maximum amount of storage needed for the grid based on the
+!!        current settings.
+!!
+!! @author Casper Steinmann
 subroutine connolly_grid_count
 
     integer :: ilayer, iatom, pp, np
@@ -313,7 +320,8 @@ subroutine connolly_grid_count
 
 end subroutine connolly_grid_count
 
-subroutine full(p, r)
+!------------------------------------------------------------------------------
+subroutine complete_sphere(p, r)
 
     real(dp), intent(in) :: p
     real(dp), dimension(:,:), intent(inout) :: r
@@ -333,6 +341,6 @@ subroutine full(p, r)
         r(2,i) = y*p
     enddo
 
-end subroutine full
+end subroutine complete_sphere
 
 end module connolly

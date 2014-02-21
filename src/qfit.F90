@@ -25,6 +25,8 @@ module qfit
 !! @param[in] R the coordinates of all nuclei
 !! @param[in] Z the nuclear charges of the nuclei
 !! @param[in] Q the total charge of the molecule
+!! @param[in] D the total dipole of the molecule
+!! @param[in] RCM the center of mass of the molecule
 subroutine qfit_initialize(R, Z, Q, D, RCM)
 
     use connolly
@@ -87,6 +89,11 @@ subroutine qfit_print_info
 
 end subroutine
 
+!------------------------------------------------------------------------------
+!> @brief returns the resulting potential derived charges
+!!
+!! @author Casper Steinmann
+!! @param[out] charges resulting potential derived charges
 subroutine qfit_get_results( charges )
 
     real(dp), dimension(:), intent(out) :: charges
@@ -100,7 +107,6 @@ end subroutine
 !!
 !! @author Casper Steinmann
 !! @param[in] density the density of the molecule
-!! @param[out] charges the fitted charges
 subroutine fit_density(density)
 
     use connolly
@@ -169,8 +175,7 @@ subroutine fit_density(density)
     integrals = zero
 
 
-    ! first determine the total potential
-    ! todo: separate into own function
+    ! determine the total potential in each point on the surface
     do k = 1, ntruepoints
         call one_electron_integrals( q_one, wrk(:,k), integrals)
         V(k) = V(k) + dot( density, integrals )
@@ -181,7 +186,7 @@ subroutine fit_density(density)
         enddo
     enddo
 
-    ! populate A matrix and b vector
+    ! populate A matrix and b vector with charge <-> surface interaction
     do m = 1, nnuclei
         do k = 1, ntruepoints
             dr = Rm(:,m) - wrk(:,k)
@@ -196,8 +201,7 @@ subroutine fit_density(density)
         enddo
     enddo
 
-    ! add constraints.
-    ! todo: this needs to be done way more cleverly
+    ! add constraints to A matrix and b vector
     do m = 1, nconstraints
         ioff = m+nnuclei
 
@@ -234,16 +238,17 @@ subroutine fit_density(density)
         enddo
     endif
 
-    ! solve Ax = b using SVD
+    ! solve the system of linear equations Ax = b using SVD
     call linear_solve_svd( A, b, charges )
 
+    ! return the resulting charges ignoring any constraints
     fitted_charges = charges(1:nnuclei)
 
-    deallocate( charges )
     deallocate( integrals )
-    deallocate( V )
-    deallocate( A )
+    deallocate( charges )
     deallocate( b )
+    deallocate( A )
+    deallocate( V )
     deallocate( wrk )
 
 end subroutine fit_density
