@@ -10,10 +10,10 @@ module qfit
 
     private
 
-    public :: fit_density
     public :: qfit_initialize
     public :: qfit_finalize
     public :: qfit_print_info
+    public :: qfit_fit
     public :: qfit_get_results
 
     contains
@@ -33,14 +33,20 @@ subroutine qfit_initialize(R, Z, Q, D, RCM)
 
     real(dp), dimension(:,:), intent(in) :: R
     real(dp), dimension(:), intent(in) :: Z
-    integer, intent(in) :: Q
-    real(dp), dimension(3), intent(in) :: D
-    real(dp), dimension(3), intent(in) :: RCM
+    integer, intent(in), optional :: Q
+    real(dp), dimension(3), intent(in), optional :: D
+    real(dp), dimension(3), intent(in), optional :: RCM
+
+    total_charge = 0
+    total_dipole = zero
+    center_of_mass = zero
 
     call connolly_initialize( R, Z )
-    total_charge = Q
-    total_dipole = D
-    center_of_mass = RCM
+
+    if (present(Q)) total_charge = Q
+    if (present(D)) total_dipole = D
+    if (present(RCM)) center_of_mass = RCM
+
     allocate( fitted_charges(size(Z)) )
 
 end subroutine
@@ -107,7 +113,7 @@ end subroutine
 !!
 !! @author Casper Steinmann
 !! @param[in] density the density of the molecule
-subroutine fit_density(density)
+subroutine qfit_fit(density)
 
     use connolly
     use qfit_integrals
@@ -251,6 +257,6 @@ subroutine fit_density(density)
     deallocate( V )
     deallocate( wrk )
 
-end subroutine fit_density
+end subroutine qfit_fit
 
 end module qfit
