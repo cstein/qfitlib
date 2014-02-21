@@ -7,7 +7,11 @@ This library includes code to generate a simple [Connolly surface](http://en.wik
 
 ## Basic usage
 
-Basic usage is carried out through the `qfit` module where if given a set of atomic coordinates `R` and atomic nuclear charges `Z` the workflow is as follows
+Basic usage is carried out through the `qfit` module which you can include in your own project using invoking
+
+    use qfit
+
+Then, given a set of atomic coordinates `R` and atomic nuclear charges `Z` the workflow to determine the set of potential derived charges is as follows
 
     call qfit_initialize( R, Z )
 
