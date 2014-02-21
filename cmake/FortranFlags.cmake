@@ -2,7 +2,6 @@ if(NOT DEFINED DEFAULT_Fortran_FLAGS_SET)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES GNU) # this is gfortran
     set(CMAKE_Fortran_FLAGS         "")
-#    set(CMAKE_Fortran_FLAGS         "-pedantic -std=f95 -std=f2003 -std=f2008 -fbacktrace")
     set(CMAKE_Fortran_FLAGS_DEBUG   "-g -O0 -Wall -Wcharacter-truncation")
     set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -ffast-math -funroll-loops -ftree-vectorize")
     if(ENABLE_STATIC_LINKING)
@@ -31,11 +30,6 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES GNU) # this is gfortran
             )
     endif()
 
-#   radovan: for magnus, this is how you can set compiler flags for one source file only
-#   set_source_files_properties(openrsp/cgto_diff_eri.f90
-#       PROPERTIES COMPILE_FLAGS
-#       "-raboof"
-#       )
 endif()
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES G95)
