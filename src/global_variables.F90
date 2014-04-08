@@ -51,6 +51,11 @@ module qfit_variables
     integer, save :: qfit_nshell = 4
     !> the density of points on the sphere
     real(dp), save :: qfit_pointdensity = 0.28_dp
+    !> optional file on which we are to evaluate the mep
+    character(len=80), save :: qfit_mepfile = ''
+    !> whether or not to only evaluate the molecular electrostatic potential.
+    !> this will skip any fitting
+    logical, save :: qfit_only_calculate_mep = .false.
 
     !
     ! runtime variables

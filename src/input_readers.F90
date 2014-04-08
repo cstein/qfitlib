@@ -51,8 +51,7 @@ subroutine dalton_input(word, luinp, lupri)
             call change_case(option)
             if (option == 'NONE' .or. &
             &   option == 'CHARGE' .or. &
-            &   option == 'DIPOLE' .or. &
-            &   option == 'QUPOLE') then
+            &   option == 'DIPOLE') then
 
                 if (option == 'NONE') then
                     qfit_constraint = 0
@@ -62,10 +61,6 @@ subroutine dalton_input(word, luinp, lupri)
                 if (option == 'DIPOLE') then
                     qfit_constraint = 3 ! 1 + 2
                 endif
-
-                !if (option == 'QUPOLE') then
-                !    qfit_constraint = 7 ! 1 + 2 + 4
-                !endif
 
             else
                 write(luout,*) 'Constraint not recognized. Please use one of:'
@@ -87,6 +82,13 @@ subroutine dalton_input(word, luinp, lupri)
         ! whether or not to use atomic charges for embedding
         else if (trim(option(2:)) == 'PTDENS') then
             read(luinp,*) qfit_pointdensity
+
+        ! read in the mepfile
+        else if (trim(option(2:)) == 'MEPFIL') then
+            read(luinp,*) qfit_mepfile
+
+        else if (trim(option(2:)) == 'ONLMEP') then
+            qfit_only_calculate_mep = .true.
 
         ! verbose output
         else if (trim(option(2:)) == 'VERBOS') then

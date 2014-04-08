@@ -46,4 +46,35 @@ subroutine change_case(string, uplo)
 
 end subroutine change_case
 
+subroutine openfile(filename, lunit, stat, frmt)
+
+    character(*), intent(in) :: filename, stat, frmt
+    integer, intent(out) :: lunit
+    integer :: i
+    logical :: lexist, lopen
+
+    if (stat == 'old') then
+        inquire(file=filename, exist=lexist)
+
+        if (.not. lexist) then
+            print *, filename, ' not found!'
+            stop
+        end if
+    end if
+
+    do i = 21, 99
+        inquire(unit=i, opened=lopen)
+        if (lopen) then
+            cycle
+        else
+            lunit = i
+            open(unit=lunit, file=filename, status=stat, form=frmt)
+            exit
+        end if
+    end do
+
+    return
+
+end subroutine openfile
+
 end module qfit_io
