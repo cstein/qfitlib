@@ -79,7 +79,7 @@ subroutine linear_solve_svd( A, b, x )
     deallocate( wrk )
     allocate( wrk( lwrk ) )
 
-    call dgesvd( 'All', 'All', lsize, lsize, A, lsize, &
+    call dgesvd( 'A', 'A', lsize, lsize, A, lsize, &
    &            S, U, lsize, VT, lsize, wrk, lwrk, info )
     
     if (info /= 0) then
