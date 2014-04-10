@@ -312,8 +312,10 @@ subroutine qfit_fit(density)
     deallocate( V )
     deallocate( wrk )
 
-    inquire(unit=lumepinp, opened=lunit_open)
-    if (lunit_open) close( lumepinp )
+    if (trim(qfit_mepfile) /= '' ) then
+        inquire(unit=lumepinp, opened=lunit_open)
+        if (lunit_open) close( lumepinp )
+    endif
 
 end subroutine qfit_fit
 
