@@ -16,6 +16,7 @@ module qfit
     public :: qfit_print_info
     public :: qfit_fit
     public :: qfit_get_results
+    public :: qfit_set_transition_dipole
 
     contains
 
@@ -64,6 +65,14 @@ subroutine qfit_finalize
     deallocate( fitted_charges )
     call connolly_finalize
 
+end subroutine
+
+subroutine qfit_set_transition_dipole( trdip )
+    real(dp), dimension(3), intent(in) :: trdip
+
+    total_charge = 0
+    total_dipole = trdip
+    Zm = zero
 end subroutine
 
 !------------------------------------------------------------------------------
@@ -163,7 +172,10 @@ subroutine qfit_fit(density)
     if (constrain_charges) nconstraints = nconstraints +1 ! charges
     if (constrain_dipoles) nconstraints = nconstraints +3 ! dipoles
 
-    ! check if the user supplied a custom file to be
+    ! Either we generate a grid and dump it to a file so we can read
+    ! it back later when fitting for many densities
+
+    ! check if the user (or we) supplied a custom file to be
     ! used to evaluate the molecular electrostatic potential ...
     if (trim(qfit_mepfile) /= '' ) then
 
@@ -196,6 +208,14 @@ subroutine qfit_fit(density)
         ntotalpoints = sum(max_layer_points)
         allocate( wrk( 3, ntotalpoints ) )
         call connolly_grid( wrk, ntruepoints )
+
+        qfit_mepfile = 'surface.mep'
+        call openfile(qfit_mepfile, lumepinp, 'new', 'formatted')
+        write(lumepinp,*) ntotalpoints
+        write(lumepinp,*) 'AU'
+        do m=1,ntotalpoints
+            write(lumepinp,*) 'X', wrk(:,m)
+        enddo
     endif
 
     ! allocate space for evaluating the potential on those points
