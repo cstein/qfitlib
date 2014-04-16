@@ -5,6 +5,7 @@
 module linear_solver
 
     use qfit_precision
+    use qfit_variables, only : luout, qfit_debug, qfit_verbose
 
     implicit none
 
@@ -39,8 +40,14 @@ subroutine linear_solve_svd( A, b, x )
     real(dp), dimension(:), allocatable :: W ! reduced 
     real(dp), dimension(:,:), allocatable :: Sm
     real(dp) :: EPS = 1.0d-5
+    real(dp), dimension(:,:), allocatable :: Atemp
+    real(dp), dimension(:), allocatable :: btemp
 
     lsize = size(A,1)
+    allocate( Atemp(lsize, lsize ) )
+    Atemp = A
+    allocate( btemp( lsize ) )
+    btemp = b
 
     ! set all resulting values to zero
     x = 0.0_dp
@@ -77,6 +84,9 @@ subroutine linear_solve_svd( A, b, x )
     ! now allocate the true work memory for the SVD
     lwrk = int(wrk(1))
     deallocate( wrk )
+    if (qfit_debug) then
+        write(luout,'(/A,I4)') 'DEBUG [linear_solve_svd]: svd lwrk', lwrk
+    endif
     allocate( wrk( lwrk ) )
 
     call dgesvd( 'A', 'A', lsize, lsize, A, lsize, &
@@ -98,33 +108,52 @@ subroutine linear_solve_svd( A, b, x )
         if (abs(S(i)) .lt. EPS ) then
             nsize = nsize -1
         endif
+        if (qfit_debug) then
+            write(luout,'(2A,2I4,F16.9)') 'DEBUG [linear_solve_svd]:', &
+    &             ' nsize, lsize,S(i)', lsize, nsize, S(i)
+        endif
     enddo
 
+    ! decide if we really need the SVD solver or not
     allocate( ipiv( nsize ) )
     allocate( W( nsize ) )
     allocate( Sm( nsize, nsize ) )
 
-    Sm = 0.0_dp
-    W = c(1:nsize)
-    do i=1,nsize
-        Sm(i,i) = S(i)
-    enddo
+    if (lsize == nsize) then
+        if (qfit_verbose) then
+            write(luout,'(A)') 'INFO: switching to regular linear solver. SVD not needed.'
+        endif
 
-    ! solve the system of linear equations S(1:nsize) x = W
-    call dgetrf( nsize, nsize, Sm, nsize, ipiv, info )
-    call dgetrs( 'N', nsize, 1, Sm, nsize, ipiv, W, nsize, info )
+        call dgetrf( nsize, nsize, Atemp, nsize, ipiv, info )
+        call dgetrs( 'N', nsize, 1, Atemp, nsize, ipiv, btemp, nsize, info )
+        x = btemp
+    else
 
-    ! obtain the solution of the system of linear equations
-    call dgemv('T',nsize,nsize,1.0_dp,VT(1:nsize,1:nsize),nsize,W,1,0.0_dp,x(1:nsize),1)
+        Sm = 0.0_dp
+        W = c(1:nsize)
+        do i=1,nsize
+            Sm(i,i) = S(i)
+        enddo
 
-    deallocate( Sm )
-    deallocate( W )
-    deallocate( ipiv )
+        ! solve the system of linear equations S(1:nsize) x = W
+        call dgetrf( nsize, nsize, Sm, nsize, ipiv, info )
+        call dgetrs( 'N', nsize, 1, Sm, nsize, ipiv, W, nsize, info )
+
+        ! obtain the solution of the system of linear equations
+        call dgemv('T',nsize,nsize,1.0_dp,VT(1:nsize,1:nsize),nsize,W,1,0.0_dp,x(1:nsize),1)
+
+        deallocate( Sm )
+        deallocate( W )
+        deallocate( ipiv )
+    endif
+
     deallocate( c )
     deallocate( wrk )
     deallocate( S )
     deallocate( VT )
     deallocate( U )
+    deallocate( btemp )
+    deallocate( Atemp )
 
 end subroutine
 

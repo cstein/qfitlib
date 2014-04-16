@@ -35,13 +35,13 @@ subroutine one_electron_integrals(charges, coords, integrals)
 
     integrals = 0.0d0
 
-#if defined (BUILD_GEN1INT)
+#if defined (GEN1INT)
     call one_e_integrals_gen1int(charges, coords, integrals)
 #endif
 
 end subroutine one_electron_integrals
 
-#if defined (BUILD_GEN1INT)
+#if defined (GEN1INT)
 
 subroutine one_e_integrals_gen1int(charges, coords, integrals)
 

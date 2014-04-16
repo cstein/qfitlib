@@ -122,6 +122,11 @@ subroutine qfit_get_results( charges )
 
     real(dp), dimension(:), intent(out) :: charges
 
+    if (size(charges) /= nnuclei) then
+        write(luout,'(/A)') "ERROR: Memory allocation in input to qfit_get_results"
+        write(luout,'(A,I4,A,I4)') " is wrong. Expected:", nnuclei, " got:", size(charges)
+        stop
+    endif
     charges = fitted_charges(1:nnuclei)
 
 end subroutine
