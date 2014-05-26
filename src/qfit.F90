@@ -104,7 +104,7 @@ subroutine qfit_print_info
 
  10 format(/10x,'Generating surface using ', i2, ' layers. Each layer is'/, &
    & 10x,'scaled by', f4.1, ' plus ', f4.1,' for each successive layer.')
- 11 format(/10x,'Point density is ', f4.2, ' au^-2.')
+ 11 format(/10x,'Point density is ', f5.2, ' au^-2.')
  13 format(/10x,'Will read "',a,'" for surface points.')
  14 format(/10x,'Constraining partial charges to reproduce the', &
    &       /10x,'total molecular charge.')
