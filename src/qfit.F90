@@ -16,6 +16,7 @@ module qfit
     public :: qfit_print_info
     public :: qfit_fit
     public :: qfit_get_results
+    public :: qfit_set_transition_dipole
 
     contains
 
@@ -66,6 +67,14 @@ subroutine qfit_finalize
 
 end subroutine
 
+subroutine qfit_set_transition_dipole( trdip )
+    real(dp), dimension(3), intent(in) :: trdip
+
+    total_charge = 0
+    total_dipole = trdip
+    Zm = zero
+end subroutine
+
 !------------------------------------------------------------------------------
 !> @brief print out information about the calculation
 !!
@@ -95,7 +104,7 @@ subroutine qfit_print_info
 
  10 format(/10x,'Generating surface using ', i2, ' layers. Each layer is'/, &
    & 10x,'scaled by', f4.1, ' plus ', f4.1,' for each successive layer.')
- 11 format(/10x,'Point density is ', f4.2, ' au^-2.')
+ 11 format(/10x,'Point density is ', f5.2, ' au^-2.')
  13 format(/10x,'Will read "',a,'" for surface points.')
  14 format(/10x,'Constraining partial charges to reproduce the', &
    &       /10x,'total molecular charge.')
@@ -113,6 +122,11 @@ subroutine qfit_get_results( charges )
 
     real(dp), dimension(:), intent(out) :: charges
 
+    if (size(charges) /= nnuclei) then
+        write(luout,'(/A)') "ERROR: Memory allocation in input to qfit_get_results"
+        write(luout,'(A,I4,A,I4)') " is wrong. Expected:", nnuclei, " got:", size(charges)
+        stop
+    endif
     charges = fitted_charges(1:nnuclei)
 
 end subroutine
@@ -163,7 +177,10 @@ subroutine qfit_fit(density)
     if (constrain_charges) nconstraints = nconstraints +1 ! charges
     if (constrain_dipoles) nconstraints = nconstraints +3 ! dipoles
 
-    ! check if the user supplied a custom file to be
+    ! Either we generate a grid and dump it to a file so we can read
+    ! it back later when fitting for many densities
+
+    ! check if the user (or we) supplied a custom file to be
     ! used to evaluate the molecular electrostatic potential ...
     if (trim(qfit_mepfile) /= '' ) then
 
@@ -196,6 +213,14 @@ subroutine qfit_fit(density)
         ntotalpoints = sum(max_layer_points)
         allocate( wrk( 3, ntotalpoints ) )
         call connolly_grid( wrk, ntruepoints )
+
+        qfit_mepfile = 'surface.mep'
+        call openfile(qfit_mepfile, lumepinp, 'new', 'formatted')
+        write(lumepinp,*) ntotalpoints
+        write(lumepinp,*) 'AU'
+        do m=1,ntotalpoints
+            write(lumepinp,*) 'X', wrk(:,m)
+        enddo
     endif
 
     ! allocate space for evaluating the potential on those points
@@ -312,8 +337,10 @@ subroutine qfit_fit(density)
     deallocate( V )
     deallocate( wrk )
 
-    inquire(unit=lumepinp, opened=lunit_open)
-    if (lunit_open) close( lumepinp )
+    if (trim(qfit_mepfile) /= '' ) then
+        inquire(unit=lumepinp, opened=lunit_open)
+        if (lunit_open) close( lumepinp )
+    endif
 
 end subroutine qfit_fit
 
