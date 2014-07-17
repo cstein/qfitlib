@@ -7,7 +7,11 @@ module qfit
     use qfit_precision
     use qfit_variables
     use qfit_io, only : openfile
+
+
     implicit none
+
+    external :: output
 
     private
 
@@ -107,9 +111,9 @@ subroutine qfit_print_info
  11 format(/10x,'Point density is ', f5.2, ' au^-2.')
  13 format(/10x,'Will read "',a,'" for surface points.')
  14 format(/10x,'Constraining partial charges to reproduce the', &
-   &       /10x,'total molecular charge.')
+   &       /10x,'molecular charge.')
  15 format(/10x,'Constraining partial charges to reproduce the', &
-           /10x,'total permanet molecular dipole.')
+           /10x,'molecular dipole.')
 
 end subroutine
 
@@ -161,6 +165,7 @@ subroutine qfit_fit(density)
     integer :: ntotalpoints, ntruepoints
     integer :: n, m, k
     integer :: ioff, nconstraints, nnbasx
+    integer :: matsiz
     logical :: constrain_charges, constrain_dipoles
     logical :: lunit_open
     integer :: lumepinp
@@ -196,8 +201,8 @@ subroutine qfit_fit(density)
         if (trim(option) == 'AA') then
             factor = aa2au
         endif
-        allocate( wrk( 3, ntotalpoints) )
-        do m=1, ntotalpoints
+        allocate( wrk( 3, ntruepoints) )
+        do m=1, ntruepoints
             read(lumepinp,*) option, wrk(:,m)
         enddo
         wrk = wrk * factor
@@ -216,9 +221,9 @@ subroutine qfit_fit(density)
 
         qfit_mepfile = 'surface.mep'
         call openfile(qfit_mepfile, lumepinp, 'new', 'formatted')
-        write(lumepinp,*) ntotalpoints
+        write(lumepinp,*) ntruepoints
         write(lumepinp,*) 'AU'
-        do m=1,ntotalpoints
+        do m=1,ntruepoints
             write(lumepinp,*) 'X', wrk(:,m)
         enddo
     endif
@@ -310,17 +315,20 @@ subroutine qfit_fit(density)
         enddo
 
         if (qfit_debug) then
+            matsiz = nnuclei+nconstraints
             write(luout,*)
             write(luout,*) "A-matrix"
-            do m = 1, nnuclei+nconstraints
-                write(luout, *) (A(m,n),n=1,nnuclei+nconstraints)
-            enddo
+            call output(A,1,matsiz,1,matsiz,matsiz,matsiz,1,luout)
+            !do m = 1, nnuclei+nconstraints
+            !    write(luout, *) (A(m,n),n=1,nnuclei+nconstraints)
+            !enddo
 
             write(luout,*)
             write(luout,*) "b-vector"
-            do m = 1, nnuclei+nconstraints
-                write(luout,*) b(m)
-            enddo
+            !do m = 1, nnuclei+nconstraints
+            !    write(luout,*) b(m)
+            !enddo
+            call output(B,1,matsiz,1,1,matsiz,1,1,luout)
         endif
 
         ! solve the system of linear equations Ax = b using SVD
@@ -328,6 +336,9 @@ subroutine qfit_fit(density)
 
         ! return the resulting charges ignoring any constraints
         fitted_charges = charges(1:nnuclei)
+
+        write(luout, '(a,i2)') "overall charge = ", total_charge
+        write(luout, '(a,3f12.6)') "molecular dip0 = ", total_dipole
     endif
 
     deallocate( integrals )
