@@ -5,7 +5,7 @@
 module linear_solver
 
     use qfit_precision
-    use qfit_variables, only : luout, qfit_debug, qfit_verbose
+    use qfit_variables, only : luout, qfit_debug, qfit_verbose, qfit_eps
 
     implicit none
 
@@ -39,7 +39,6 @@ subroutine linear_solve_svd( A, b, x )
     real(dp), dimension(:), allocatable :: c
     real(dp), dimension(:), allocatable :: W ! reduced 
     real(dp), dimension(:,:), allocatable :: Sm
-    real(dp) :: EPS = 1.0d-5
     real(dp), dimension(:,:), allocatable :: Atemp
     real(dp), dimension(:), allocatable :: btemp
 
@@ -84,9 +83,9 @@ subroutine linear_solve_svd( A, b, x )
     ! now allocate the true work memory for the SVD
     lwrk = int(wrk(1))
     deallocate( wrk )
-    if (qfit_debug) then
-        write(luout,'(/A,I4)') 'DEBUG [linear_solve_svd]: svd lwrk', lwrk
-    endif
+    !if (qfit_debug) then
+    !    write(luout,'(/A,I4)') 'DEBUG [linear_solve_svd]: svd lwrk', lwrk
+    !endif
     allocate( wrk( lwrk ) )
 
     call dgesvd( 'A', 'A', lsize, lsize, A, lsize, &
@@ -105,7 +104,7 @@ subroutine linear_solve_svd( A, b, x )
     ! reduce the solution space by removing singular values
     nsize = lsize
     do i=1,lsize
-        if (abs(S(i)) .lt. EPS ) then
+        if (abs(S(i)) .lt. qfit_eps ) then
             nsize = nsize -1
         endif
         if (qfit_debug) then
@@ -121,14 +120,14 @@ subroutine linear_solve_svd( A, b, x )
 
     if (lsize == nsize) then
         if (qfit_verbose) then
-            write(luout,'(A)') 'INFO: switching to regular linear solver. SVD not needed.'
+            write(luout,'(/2x,A)') 'INFO: switching to regular linear solver. SVD not needed.'
         endif
 
         call dgetrf( nsize, nsize, Atemp, nsize, ipiv, info )
         call dgetrs( 'N', nsize, 1, Atemp, nsize, ipiv, btemp, nsize, info )
         x = btemp
     else
-
+        write(luout,'(A,I3,A,I3)') 'WARNING: Size of linear system reduced from ', lsize, ' to ', nsize
         Sm = 0.0_dp
         W = c(1:nsize)
         do i=1,nsize

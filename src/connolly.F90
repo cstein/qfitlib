@@ -60,16 +60,17 @@ subroutine connolly_initialize( R, Z )
     allocate( n_layer_points( qfit_nshell ) )
     n_layer_points = 0
 
-end subroutine
+end subroutine connolly_initialize
 
 !------------------------------------------------------------------------------
-!> @brief Releases the memory acquired by the connolly module.
+!> @brief Releases the memory acquired by the connolly grid module.
 !!
 !! @author Casper Steinmann
 subroutine connolly_finalize
 
     deallocate( max_layer_points )
     deallocate( n_layer_points )
+    ! allocated in connolly_grid_count
     if (allocated( point_include) ) deallocate( point_include )
     deallocate( Rm )
     deallocate( Zm )

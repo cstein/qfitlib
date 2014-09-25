@@ -56,6 +56,8 @@ module qfit_variables
     !> whether or not to only evaluate the molecular electrostatic potential.
     !> this will skip any fitting
     logical, save :: qfit_only_calculate_mep = .false.
+    !> remove values from the SVD subspace if lower than this value
+    real(dp) :: qfit_eps = 5.0d-4
 
     !
     ! runtime variables
@@ -77,11 +79,11 @@ module qfit_variables
     real(dp), parameter :: aa2au = one / 0.5291772109217_dp
     ! van der waal radii for the elements
     real(dp), parameter, dimension(0:16) :: vdw_radii = (/ &
-        & 1.2d0, &
-        & 1.2d0, 0.0d0, 0.0d0, 0.0d0, &
-        & 0.0d0, 1.5d0, 1.5d0, 1.4d0, &
-        & 0.0d0, 0.0d0, 0.0d0, 0.0d0, &
-        & 0.0d0, 0.0d0, 0.0d0, 1.89d0 /)
+        & 1.20d0, &
+        & 1.20d0, 1.20d0, 1.37d0, 1.45d0, &
+        & 1.45d0, 1.50d0, 1.50d0, 1.40d0, &
+        & 0.00d0, 0.00d0, 0.00d0, 0.00d0, &
+        & 0.00d0, 0.00d0, 0.00d0, 1.80d0 /)
 
 
 end module qfit_variables

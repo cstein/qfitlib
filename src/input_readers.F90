@@ -75,13 +75,17 @@ subroutine dalton_input(word, luinp, lupri)
         else if (trim(option(2:)) == 'VDWINC') then
             read(luinp,*) qfit_vdwincrement
 
-        ! whether or not to use atomic charges for embedding
+        ! number of shells surrounding the molecule
         else if (trim(option(2:)) == 'NSHELL') then
             read(luinp,*) qfit_nshell
 
-        ! whether or not to use atomic charges for embedding
+        ! surface point density
         else if (trim(option(2:)) == 'PTDENS') then
             read(luinp,*) qfit_pointdensity
+
+        ! SVD threshold
+        else if (trim(option(2:)) == 'SVDEPS') then
+            read(luinp,*) qfit_eps
 
         ! read in the mepfile
         else if (trim(option(2:)) == 'MEPFIL') then

@@ -75,13 +75,13 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
     integer nnz_comp(2,1)
 
     ! -- SUBROUTINE VARIABLES --
-    integer :: nat, nnbas
+    integer :: i, j
+    integer :: nat
     integer, dimension(:), allocatable :: nuclei
     real(dp), dimension(:), allocatable :: real_charges
     real(dp), dimension(3,1) :: real_coords
 
     integrals = 0.0d0
-    nnbas = size(integrals)
 
     ! treat the nuclei as non-nuclei because we want to also
     ! be able to evaluate other types of atomic charges
@@ -141,13 +141,13 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
 
     if (num_prop /= 1) stop 'ERROR: Integral property failed.'
 
-    triangular = .true.
+    triangular = .false.
     symmetric = (prop_sym == SYMM_INT_MAT)
 
     allocate(intmats(num_prop), stat=ierr)
 
     call MatAssociate(work_alpha=integrals(:), &
-                      num_row=num_ao,         &
+                      num_row=num_ao,          &
                       A=intmats(num_prop),     &
                       info_mat=ierr,           &
                       triangular=triangular,   &
@@ -172,6 +172,7 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
     call Gen1IntAPINaryTreeDestroy(nary_tree=nary_tree_total)
 
     call MatNullify(A=intmats(num_prop))
+
     deallocate(intmats)
     deallocate(nuclei)
     deallocate(real_charges)

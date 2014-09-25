@@ -153,7 +153,7 @@ subroutine qfit_fit(density)
     ! local arrays
     real(dp), dimension(:,:), allocatable :: wrk
     real(dp), dimension(:), allocatable :: integrals
-    real(dp), dimension(:), allocatable :: V
+    real(dp), dimension(:), allocatable :: V, vfit
     real(dp), dimension(:,:), allocatable :: A
     real(dp), dimension(:), allocatable :: b
 
@@ -164,7 +164,7 @@ subroutine qfit_fit(density)
     real(dp), dimension(:), allocatable :: charges
     integer :: ntotalpoints, ntruepoints
     integer :: n, m, k
-    integer :: ioff, nconstraints, nnbasx
+    integer :: ioff, nconstraints, nnbasx, n2bas
     integer :: matsiz
     logical :: constrain_charges, constrain_dipoles
     logical :: lunit_open
@@ -246,10 +246,10 @@ subroutine qfit_fit(density)
     q_one = one
 
     ! integral memory
-    nnbasx = size( density )
-    allocate( integrals( nnbasx ) )
+    n2bas = size( density )
+    allocate( integrals( n2bas ) )
     integrals = zero
-
+    write(luout, *) "CSS: n2bas", n2bas
 
     ! determine the total potential in each point on the surface
     if (qfit_only_calculate_mep) then
@@ -260,7 +260,7 @@ subroutine qfit_fit(density)
 
     do k = 1, ntruepoints
         call one_electron_integrals( q_one, wrk(:,k), integrals)
-        V(k) = V(k) + dot( density, integrals )
+        V(k) = dot( density, integrals )
         do m = 1, nnuclei
             dr = Rm(:,m) - wrk(:,k)
             Rmk = sqrt( dot( dr, dr ) )
@@ -282,11 +282,13 @@ subroutine qfit_fit(density)
                 dr = Rm(:,m) - wrk(:,k)
                 Rmk = sqrt( dot( dr, dr ) )
                 b(m) = b(m) + V(k) / Rmk
+                !write(*,'(A,2I4, 6F16.6)') "B", m, k, Rm(:,m), wrk(:,k)
 
                 do n = 1, nnuclei
                     dr = Rm(:,n) - wrk(:,k)
                     Rnk = sqrt( dot( dr, dr ) )
                     A(m,n) = A(m,n) + one / (Rmk * Rnk)
+                    !write(*,'(A,I4,5F16.10)') "    C", n, Rmk, Rnk, Rm(:,n)
                 enddo
             enddo
         enddo
@@ -314,8 +316,13 @@ subroutine qfit_fit(density)
             endif
         enddo
 
+
         if (qfit_debug) then
             matsiz = nnuclei+nconstraints
+            write(luout,*)
+            write(luout,*) "Density: (QFITLIB)"
+            call output(density,1,26,1,26,26,26,1,luout)
+
             write(luout,*)
             write(luout,*) "A-matrix"
             call output(A,1,matsiz,1,matsiz,matsiz,matsiz,1,luout)
@@ -337,9 +344,29 @@ subroutine qfit_fit(density)
         ! return the resulting charges ignoring any constraints
         fitted_charges = charges(1:nnuclei)
 
-        write(luout, '(a,i2)') "overall charge = ", total_charge
-        write(luout, '(a,3f12.6)') "molecular dip0 = ", total_dipole
+        !write(luout, '(a,i2)') "overall charge = ", total_charge
+        !write(luout, '(a,3f12.6)') "molecular dip0 = ", total_dipole
     endif
+
+    ! lets do some statistics
+    allocate( vfit( ntruepoints ) )
+    vfit = 0.0d0
+    do k = 1, ntruepoints
+        do m = 1, nnuclei
+            dr = Rm(:,m) - wrk(:,k)
+            Rmk = sqrt( dot( dr, dr ) )
+            vfit(k) = vfit(k) + charges(m) / Rmk
+        enddo
+        if (qfit_debug) then
+            write(luout,'(A,2F16.10)') "Vqm, Vfit = ", V(k), vfit(k)
+        endif
+        V(k) = V(k) - vfit(k)
+        V(k) = V(k)*V(k)
+    enddo
+    if (qfit_verbose) then
+        write(luout, '(/1x,A,F9.6)') "@ RMS of fitted ESP = ", sqrt( sum( V ) / ntruepoints )
+    endif
+    deallocate( vfit )
 
     deallocate( integrals )
     deallocate( charges )
