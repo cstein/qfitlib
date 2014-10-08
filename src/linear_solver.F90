@@ -105,7 +105,10 @@ subroutine linear_solve_svd( A, b, x )
     nsize = lsize
     do i=1,lsize
         if (abs(S(i)) .lt. qfit_eps ) then
-            nsize = nsize -1
+        !xx    nsize = nsize -1
+             S(i) = 0.0_dp
+        else
+             S(i) = 1.0_dp / S(i)
         endif
         if (qfit_debug) then
             write(luout,'(2A,2I4,F16.9)') 'DEBUG [linear_solve_svd]:', &
@@ -118,15 +121,15 @@ subroutine linear_solve_svd( A, b, x )
     allocate( W( nsize ) )
     allocate( Sm( nsize, nsize ) )
 
-    if (lsize == nsize) then
-        if (qfit_verbose) then
-            write(luout,'(/2x,A)') 'INFO: switching to regular linear solver. SVD not needed.'
-        endif
-
-        call dgetrf( nsize, nsize, Atemp, nsize, ipiv, info )
-        call dgetrs( 'N', nsize, 1, Atemp, nsize, ipiv, btemp, nsize, info )
-        x = btemp
-    else
+    !if (lsize == nsize) then
+    !    if (qfit_verbose) then
+    !        write(luout,'(/2x,A)') 'INFO: switching to regular linear solver. SVD not needed.'
+    !    endif
+    !
+    !    call dgetrf( nsize, nsize, Atemp, nsize, ipiv, info )
+    !    call dgetrs( 'N', nsize, 1, Atemp, nsize, ipiv, btemp, nsize, info )
+    !    x = btemp
+    !else
         write(luout,'(A,I3,A,I3)') 'WARNING: Size of linear system reduced from ', lsize, ' to ', nsize
         Sm = 0.0_dp
         W = c(1:nsize)
@@ -134,17 +137,21 @@ subroutine linear_solve_svd( A, b, x )
             Sm(i,i) = S(i)
         enddo
 
+        ! \bar{S} c = btemp
+        btemp = 0.0_dp
+        call dgemv('N',nsize,nsize,1.0_dp,Sm,nsize,c,1,0.0_dp,btemp,1)
+        call dgemv('T',nsize,nsize,1.0_dp,VT,nsize,btemp,1,0.0_dp,x(1:nsize),1)
         ! solve the system of linear equations S(1:nsize) x = W
-        call dgetrf( nsize, nsize, Sm, nsize, ipiv, info )
-        call dgetrs( 'N', nsize, 1, Sm, nsize, ipiv, W, nsize, info )
+        !call dgetrf( nsize, nsize, Sm, nsize, ipiv, info )
+        !call dgetrs( 'N', nsize, 1, Sm, nsize, ipiv, W, nsize, info )
 
         ! obtain the solution of the system of linear equations
-        call dgemv('T',nsize,nsize,1.0_dp,VT(1:nsize,1:nsize),nsize,W,1,0.0_dp,x(1:nsize),1)
+        !call dgemv('T',nsize,nsize,1.0_dp,VT(1:nsize,1:nsize),nsize,W,1,0.0_dp,x(1:nsize),1)
 
         deallocate( Sm )
         deallocate( W )
         deallocate( ipiv )
-    endif
+    !endif
 
     deallocate( c )
     deallocate( wrk )
