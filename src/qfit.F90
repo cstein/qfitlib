@@ -243,7 +243,12 @@ subroutine qfit_fit(density)
     charges = zero
 
     ! this is the test charge we use to evaluate the electrostatic potential
+    ! +1 for ground state density
+    ! -1 for excited state density
     q_one = one
+    if (sum(Zm) == zero) then
+        q_one = -one
+    endif
 
     ! integral memory
     n2bas = size( density )
