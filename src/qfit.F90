@@ -164,7 +164,7 @@ subroutine qfit_fit(density)
     real(dp), dimension(:), allocatable :: charges
     integer :: ntotalpoints, ntruepoints
     integer :: n, m, k
-    integer :: ioff, nconstraints, nnbasx, n2bas
+    integer :: ioff, nconstraints, n2bas
     integer :: matsiz
     logical :: constrain_charges, constrain_dipoles
     logical :: lunit_open
@@ -249,7 +249,6 @@ subroutine qfit_fit(density)
     n2bas = size( density )
     allocate( integrals( n2bas ) )
     integrals = zero
-    write(luout, *) "CSS: n2bas", n2bas
 
     ! determine the total potential in each point on the surface
     if (qfit_only_calculate_mep) then
@@ -320,21 +319,16 @@ subroutine qfit_fit(density)
         if (qfit_debug) then
             matsiz = nnuclei+nconstraints
             write(luout,*)
-            write(luout,*) "Density: (QFITLIB)"
-            call output(density,1,26,1,26,26,26,1,luout)
+            write(luout,*) "Input Density:"
+            nbas = int(sqrt(n2bas))
+            call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
 
             write(luout,*)
-            write(luout,*) "A-matrix"
+            write(luout,*) "Geometric Matrix (A):"
             call output(A,1,matsiz,1,matsiz,matsiz,matsiz,1,luout)
-            !do m = 1, nnuclei+nconstraints
-            !    write(luout, *) (A(m,n),n=1,nnuclei+nconstraints)
-            !enddo
 
             write(luout,*)
-            write(luout,*) "b-vector"
-            !do m = 1, nnuclei+nconstraints
-            !    write(luout,*) b(m)
-            !enddo
+            write(luout,*) "Potential Vector (b):"
             call output(B,1,matsiz,1,1,matsiz,1,1,luout)
         endif
 
