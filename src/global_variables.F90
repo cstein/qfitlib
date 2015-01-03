@@ -78,12 +78,14 @@ module qfit_variables
     real(dp), parameter :: one = 1.0_dp
     real(dp), parameter :: aa2au = one / 0.5291772109217_dp
     ! van der waal radii for the elements
-    real(dp), parameter, dimension(0:16) :: vdw_radii = (/ &
+    real(dp), parameter, dimension(0:24) :: vdw_radii = (/ &
         & 1.20d0, &
         & 1.20d0, 1.20d0, 1.37d0, 1.45d0, &
         & 1.45d0, 1.50d0, 1.50d0, 1.40d0, &
         & 0.00d0, 0.00d0, 0.00d0, 0.00d0, &
-        & 0.00d0, 0.00d0, 0.00d0, 1.80d0 /)
+        & 0.00d0, 0.00d0, 0.00d0, 1.80d0, &
+        & 0.00d0, 0.00d0, 0.00d0, 0.00d0, &
+        & 0.00d0, 0.00d0, 0.00d0, 1.50d0 /)
 
 
 end module qfit_variables
