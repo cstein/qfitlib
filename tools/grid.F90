@@ -18,8 +18,11 @@ Z = (/8.0, 1.0, 1.0/)
 
 R = R * aa2au
 
+qfit_nshell = 4
+
 call connolly_initialize( R, Z )
 call connolly_grid_count
+
 
 ntotalpoints = sum(max_layer_points)
 allocate( wrk( 3, ntotalpoints ) )
@@ -29,7 +32,7 @@ write(*,'(i4)') ntruepoints
 write(*,*)
 
 do k = 1, ntruepoints
-    write(*,'(a,f20.9,2f16.9)') 'X', wrk(:,k)
+    write(*,'(a,f20.9,2f16.9)') 'X', wrk(:,k) / aa2au
 enddo
 
 call connolly_finalize

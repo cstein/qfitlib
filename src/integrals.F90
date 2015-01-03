@@ -15,27 +15,17 @@ module qfit_integrals
     contains
 
 !------------------------------------------------------------------------------
-!> @brief evaluates the one-electron contribution to the fock matrix.
+!> @brief evaluates the potential integrals
 !!
 !! @author Casper Steinmann
 !!
-!! @param[in] charges Charges of the nuclei of fragment @f$ K @f$
-!! @param[in] coords Coordinates of the nuclei of fragment @f$ K @f$
-!! @param[out] integrals the one-electron contribution to the fock matrix
+!! @param[in] charges Charges of the nuclei
+!! @param[in] coords Coordinates of the nuclei
+!! @param[out] integrals the one-electron contribution
 !!
-!! @note lifted and adapted from the polarizable embedding library
-!!
-!! @details If the two-electron part is included explcitly, the nuclear charges
-!! of fragment @f$K@f$ is used
+!! @details 
 !! @f[
-!!   u^{K}_{\mu\nu} = -\sum_{A\in K} \big \langle \mu \big| \frac{Z_A}{|\mathbf{r}-\mathbf{R}_A|} \big| \nu \big\rangle
-!! @f]
-!!
-!! An approximation is to change the two-electron contribution into a
-!! one-electron part using mulliken charges yielding the following
-!! expression for the one-electron terms
-!! @f[
-!!   u^{K}_{\mu\nu} = -\sum_{A\in K} \big \langle \mu \big| \frac{Z_A-Q_A}{|\mathbf{r}-\mathbf{R}_A|} \big| \nu \big\rangle
+!!   V_{\mu\nu} = \big \langle \mu \big| \frac{Z_A}{|\mathbf{r}-\mathbf{R}_A|} \big| \nu \big\rangle
 !! @f]
 subroutine one_electron_integrals(charges, coords, integrals)
 
@@ -45,13 +35,13 @@ subroutine one_electron_integrals(charges, coords, integrals)
 
     integrals = 0.0d0
 
-#if defined (BUILD_GEN1INT)
+#if defined (GEN1INT)
     call one_e_integrals_gen1int(charges, coords, integrals)
 #endif
 
 end subroutine one_electron_integrals
 
-#if defined (BUILD_GEN1INT)
+#if defined (GEN1INT)
 
 subroutine one_e_integrals_gen1int(charges, coords, integrals)
 
@@ -85,13 +75,13 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
     integer nnz_comp(2,1)
 
     ! -- SUBROUTINE VARIABLES --
-    integer :: nat, nnbas
+    integer :: i, j
+    integer :: nat
     integer, dimension(:), allocatable :: nuclei
     real(dp), dimension(:), allocatable :: real_charges
     real(dp), dimension(3,1) :: real_coords
 
     integrals = 0.0d0
-    nnbas = size(integrals)
 
     ! treat the nuclei as non-nuclei because we want to also
     ! be able to evaluate other types of atomic charges
@@ -151,13 +141,13 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
 
     if (num_prop /= 1) stop 'ERROR: Integral property failed.'
 
-    triangular = .true.
+    triangular = .false.
     symmetric = (prop_sym == SYMM_INT_MAT)
 
     allocate(intmats(num_prop), stat=ierr)
 
     call MatAssociate(work_alpha=integrals(:), &
-                      num_row=num_ao,         &
+                      num_row=num_ao,          &
                       A=intmats(num_prop),     &
                       info_mat=ierr,           &
                       triangular=triangular,   &
@@ -182,6 +172,7 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
     call Gen1IntAPINaryTreeDestroy(nary_tree=nary_tree_total)
 
     call MatNullify(A=intmats(num_prop))
+
     deallocate(intmats)
     deallocate(nuclei)
     deallocate(real_charges)

@@ -25,13 +25,19 @@ module qfit_variables
     integer, save :: nnuclei
     !> total charge of the molecule
     integer, save :: total_charge
+    !> total dipole of the molecule
+    real(dp), dimension(3), save :: total_dipole
+    !> center of mass of the molecule
+    real(dp), dimension(3), save :: center_of_mass
 
     !
     ! Run-time settings to be read in from input
     !
     !> unit to write to for output (default is stdout)
     integer, save :: luout = 6
+
     !> bitwise additive option for constraints
+    !> 0: nothing
     !> 1: charges
     !> 2: dipole
     !> 4: quadrupole
@@ -45,6 +51,13 @@ module qfit_variables
     integer, save :: qfit_nshell = 4
     !> the density of points on the sphere
     real(dp), save :: qfit_pointdensity = 0.28_dp
+    !> optional file on which we are to evaluate the mep
+    character(len=80), save :: qfit_mepfile = ''
+    !> whether or not to only evaluate the molecular electrostatic potential.
+    !> this will skip any fitting
+    logical, save :: qfit_only_calculate_mep = .false.
+    !> remove values from the SVD subspace if lower than this value
+    real(dp) :: qfit_eps = 5.0d-4
 
     !
     ! runtime variables
@@ -65,11 +78,14 @@ module qfit_variables
     real(dp), parameter :: one = 1.0_dp
     real(dp), parameter :: aa2au = one / 0.5291772109217_dp
     ! van der waal radii for the elements
-    real(dp), parameter, dimension(16) :: vdw_radii = (/ &
-        & 1.2d0, 0.0d0, 0.0d0, 0.0d0, &
-        & 0.0d0, 1.5d0, 1.5d0, 1.4d0, &
-        & 0.0d0, 0.0d0, 0.0d0, 0.0d0, &
-        & 0.0d0, 0.0d0, 0.0d0, 1.89d0 /)
+    real(dp), parameter, dimension(0:24) :: vdw_radii = (/ &
+        & 1.20d0, &
+        & 1.20d0, 1.20d0, 1.37d0, 1.45d0, &
+        & 1.45d0, 1.50d0, 1.50d0, 1.40d0, &
+        & 0.00d0, 0.00d0, 0.00d0, 0.00d0, &
+        & 0.00d0, 0.00d0, 0.00d0, 1.80d0, &
+        & 0.00d0, 0.00d0, 0.00d0, 0.00d0, &
+        & 0.00d0, 0.00d0, 0.00d0, 1.50d0 /)
 
 
 end module qfit_variables

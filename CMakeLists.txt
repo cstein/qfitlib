@@ -1,14 +1,22 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
-project(QFITLIB Fortran)
+project(qfitlib Fortran)
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
     ${CMAKE_CURRENT_SOURCE_DIR}/cmake
-    ${CMAKE_CURRENT_SOURCE_DIR}/cmake/math
     )
 
 include(ConfigParentSettings)
+
+find_package( BLAS REQUIRED )
+
+if("${INTEGRAL_LIBRARY}" STREQUAL "GEN1INT")
+    add_definitions(-D${INTEGRAL_LIBRARY})
+    message("-- Using Gen1Int integral library.")
+else()
+    message("-- No integral library enabled.")
+endif()
 
 if(NOT CMAKE_Fortran_MODULE_DIRECTORY)
     set(CMAKE_Fortran_MODULE_DIRECTORY
@@ -28,15 +36,13 @@ if(NOT CMAKE_BUILD_TYPE)
         )
 endif()
 
-option(ENABLE_AUTO_BLAS      "Enable CMake to autodetect BLAS"                  ON)
-option(ENABLE_AUTO_LAPACK    "Enable CMake to autodetect LAPACK"                ON)
-
 include(ConfigCompilerFlags)
-include(ConfigMath)
+#include(ConfigMath)
 
 set(SOURCES_LIBRARY
     ${PROJECT_SOURCE_DIR}/src/qfit.F90
     ${PROJECT_SOURCE_DIR}/src/connolly.F90
+    ${PROJECT_SOURCE_DIR}/src/geodesic.F90
     ${PROJECT_SOURCE_DIR}/src/linear_solver.F90
     ${PROJECT_SOURCE_DIR}/src/input_readers.F90
     ${PROJECT_SOURCE_DIR}/src/global_variables.F90
@@ -50,14 +56,20 @@ set(TOOLS_GRID
     ${PROJECT_SOURCE_DIR}/tools/grid.F90
     )
 
+set(TOOLS_XYZ2GRID
+    ${PROJECT_SOURCE_DIR}/tools/xyz2grid.F90
+    )
+
 set(TOOLS_SOLVER
     ${PROJECT_SOURCE_DIR}/tools/solver.F90
     )
 
 add_library(qfitlib ${SOURCES_LIBRARY})
 add_executable(grid ${TOOLS_GRID})
-add_executable(solver ${TOOLS_SOLVER})
-target_link_libraries (grid qfitlib ${EXTERNAL_LIBS})
-target_link_libraries (solver qfitlib ${EXTERNAL_LIBS})
+add_executable(xyz2grid ${TOOLS_XYZ2GRID})
+#add_executable(solver ${TOOLS_SOLVER})
+target_link_libraries (grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
+target_link_libraries (xyz2grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
+#target_link_libraries (solver qfitlib ${EXTERNAL_LIBS} ${LAPACK_LIBRARIES})
 
 install(TARGETS qfitlib ARCHIVE DESTINATION lib)

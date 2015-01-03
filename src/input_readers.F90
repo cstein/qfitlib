@@ -49,22 +49,22 @@ subroutine dalton_input(word, luinp, lupri)
         if (trim(option(2:)) == 'CONSTR') then
             read(luinp,*) option
             call change_case(option)
-            if (option == 'CHARGE' .or. &
-            &   option == 'DIPOLE' .or. &
-            &   option == 'QUPOLE') then
+            if (option == 'NONE' .or. &
+            &   option == 'CHARGE' .or. &
+            &   option == 'DIPOLE') then
+
+                if (option == 'NONE') then
+                    qfit_constraint = 0
+                endif
 
                 ! default is 1 which means charge
                 if (option == 'DIPOLE') then
                     qfit_constraint = 3 ! 1 + 2
                 endif
 
-                if (option == 'QUPOLE') then
-                    qfit_constraint = 7 ! 1 + 2 + 4
-                endif
-
             else
                 write(luout,*) 'Constraint not recognized. Please use one of:'
-                write(luout,*) '    CHARGE, DIPOLE or QUPOLE'
+                write(luout,*) '    NONE, CHARGE, DIPOLE'
             endif
 
         ! read atom indices in fragments. dummy read the number of atoms
@@ -75,13 +75,24 @@ subroutine dalton_input(word, luinp, lupri)
         else if (trim(option(2:)) == 'VDWINC') then
             read(luinp,*) qfit_vdwincrement
 
-        ! whether or not to use atomic charges for embedding
+        ! number of shells surrounding the molecule
         else if (trim(option(2:)) == 'NSHELL') then
             read(luinp,*) qfit_nshell
 
-        ! whether or not to use atomic charges for embedding
+        ! surface point density
         else if (trim(option(2:)) == 'PTDENS') then
             read(luinp,*) qfit_pointdensity
+
+        ! SVD threshold
+        else if (trim(option(2:)) == 'SVDEPS') then
+            read(luinp,*) qfit_eps
+
+        ! read in the mepfile
+        else if (trim(option(2:)) == 'MEPFIL') then
+            read(luinp,*) qfit_mepfile
+
+        else if (trim(option(2:)) == 'ONLMEP') then
+            qfit_only_calculate_mep = .true.
 
         ! verbose output
         else if (trim(option(2:)) == 'VERBOS') then
