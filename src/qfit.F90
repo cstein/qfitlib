@@ -164,7 +164,7 @@ subroutine qfit_fit(density)
     real(dp), dimension(:), allocatable :: charges
     integer :: ntotalpoints, ntruepoints
     integer :: n, m, k
-    integer :: ioff, nconstraints, n2bas
+    integer :: ioff, nconstraints, n2bas, nbas
     integer :: matsiz
     logical :: constrain_charges, constrain_dipoles
     logical :: lunit_open
@@ -325,7 +325,7 @@ subroutine qfit_fit(density)
             matsiz = nnuclei+nconstraints
             write(luout,*)
             write(luout,*) "Input Density:"
-            nbas = int(sqrt(n2bas))
+            nbas = int(sqrt(real(n2bas)))
             call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
 
             write(luout,*)
