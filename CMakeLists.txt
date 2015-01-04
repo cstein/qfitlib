@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 project(qfitlib Fortran)
+option(ENABLE_TOOLS "Build standalone tools." OFF)
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
@@ -52,24 +53,27 @@ set(SOURCES_LIBRARY
     ${PROJECT_SOURCE_DIR}/src/io.F90
     )
 
-set(TOOLS_GRID
-    ${PROJECT_SOURCE_DIR}/tools/grid.F90
-    )
-
-set(TOOLS_XYZ2GRID
-    ${PROJECT_SOURCE_DIR}/tools/xyz2grid.F90
-    )
-
-set(TOOLS_SOLVER
-    ${PROJECT_SOURCE_DIR}/tools/solver.F90
-    )
-
 add_library(qfitlib ${SOURCES_LIBRARY})
-add_executable(grid ${TOOLS_GRID})
-add_executable(xyz2grid ${TOOLS_XYZ2GRID})
-#add_executable(solver ${TOOLS_SOLVER})
-target_link_libraries (grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
-target_link_libraries (xyz2grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
-#target_link_libraries (solver qfitlib ${EXTERNAL_LIBS} ${LAPACK_LIBRARIES})
+
+if(ENABLE_TOOLS)
+    set(TOOLS_GRID
+        ${PROJECT_SOURCE_DIR}/tools/grid.F90
+    )
+
+    set(TOOLS_XYZ2GRID
+        ${PROJECT_SOURCE_DIR}/tools/xyz2grid.F90
+    )
+
+    set(TOOLS_SOLVER
+        ${PROJECT_SOURCE_DIR}/tools/solver.F90
+    )
+
+    add_executable(grid ${TOOLS_GRID})
+    add_executable(xyz2grid ${TOOLS_XYZ2GRID})
+    add_executable(solver ${TOOLS_SOLVER})
+    target_link_libraries (grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
+    target_link_libraries (xyz2grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
+    target_link_libraries (solver qfitlib ${EXTERNAL_LIBS} ${LAPACK_LIBRARIES})
+endif(ENABLE_TOOLS)
 
 install(TARGETS qfitlib ARCHIVE DESTINATION lib)
