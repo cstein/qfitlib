@@ -75,7 +75,7 @@ subroutine qfit_set_transition_dipole( trdip )
     real(dp), dimension(3), intent(in) :: trdip
 
     total_charge = 0
-    total_dipole = trdip
+    total_dipole = -trdip
     Zm = zero
 end subroutine
 
@@ -242,14 +242,6 @@ subroutine qfit_fit(density)
     allocate( charges( nnuclei + nconstraints ) )
     charges = zero
 
-    ! this is the test charge we use to evaluate the electrostatic potential
-    ! +1 for ground state density
-    ! -1 for excited state density
-    q_one = one
-    if (sum(Zm) == zero) then
-        q_one = -one
-    endif
-
     ! integral memory
     n2bas = size( density )
     allocate( integrals( n2bas ) )
@@ -261,6 +253,9 @@ subroutine qfit_fit(density)
         write(luout,'(i4)') ntruepoints
         write(luout,*) "AU"
     endif
+
+    ! we need integrals of electronic density, hence -1
+    q_one = -one
 
     do k = 1, ntruepoints
         call one_electron_integrals( q_one, wrk(:,k), integrals)

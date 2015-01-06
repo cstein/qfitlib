@@ -97,7 +97,7 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
     nnz_comp(2,1) = 1
 
     ! do the correct sign according to the operator
-    real_charges = -1.0d0 * charges
+    real_charges = charges
 
     call OnePropCreate(prop_name=INT_POT_ENERGY, &
                        one_prop=prop_operator,   &
