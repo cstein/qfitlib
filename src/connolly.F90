@@ -334,7 +334,7 @@ subroutine complete_sphere(p, r)
     n = size( r, 2 )
 
     do i = 1, n
-        angle = 2*pi*(i-1) / n
+        angle = 2.0_dp*pi*(i-1) / n
         x = cos( angle )
         y = sin( angle )
 
