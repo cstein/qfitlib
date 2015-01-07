@@ -65,6 +65,8 @@ set(SOURCES_LIBRARY
 add_library(qfitlib ${SOURCES_LIBRARY})
 
 if(ENABLE_QFIT_TOOLS)
+    message("-- Building QFITLIB standalone tools.")
+
     set(TOOLS_GRID
         ${PROJECT_SOURCE_DIR}/tools/grid.F90
     )
