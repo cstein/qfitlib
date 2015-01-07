@@ -70,10 +70,10 @@ if(ENABLE_TOOLS)
 
     add_executable(grid ${TOOLS_GRID})
     add_executable(xyz2grid ${TOOLS_XYZ2GRID})
-    add_executable(solver ${TOOLS_SOLVER})
+    #add_executable(solver ${TOOLS_SOLVER})
     target_link_libraries (grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
     target_link_libraries (xyz2grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
-    target_link_libraries (solver qfitlib ${EXTERNAL_LIBS} ${LAPACK_LIBRARIES})
+    #target_link_libraries (solver qfitlib ${EXTERNAL_LIBS} ${LAPACK_LIBRARIES})
 endif(ENABLE_TOOLS)
 
 install(TARGETS qfitlib ARCHIVE DESTINATION lib)
