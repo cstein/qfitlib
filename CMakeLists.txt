@@ -1,7 +1,7 @@
 cmake_minimum_required(VERSION 2.8 FATAL_ERROR)
 
 project(qfitlib Fortran)
-option(ENABLE_TOOLS "Build standalone tools." OFF)
+option(ENABLE_QFIT_TOOLS "Build standalone QFITLIB tools." OFF)
 
 set(CMAKE_MODULE_PATH
     ${CMAKE_MODULE_PATH}
@@ -10,8 +10,16 @@ set(CMAKE_MODULE_PATH
 
 include(ConfigParentSettings)
 
-find_package( BLAS REQUIRED )
-find_package( LAPACK REQUIRED )
+if(NOT DEFINED HOST_PROGRAM)
+    message("-- No external host program defined. Locating MATH libraries.")
+
+    #find_package( BLAS REQUIRED )
+    find_package( LAPACK REQUIRED )
+
+    set(EXTERNAL_LIBS
+        ${BLAS_LIBRARIES}
+        ${LAPACK_LIBRARIES})
+endif()
 
 if("${INTEGRAL_LIBRARY}" STREQUAL "GEN1INT")
     add_definitions(-D${INTEGRAL_LIBRARY})
@@ -26,7 +34,7 @@ if(NOT CMAKE_Fortran_MODULE_DIRECTORY)
 endif()
 
 include_directories(
-${CMAKE_Fortran_MODULE_DIRECTORY}
+    ${CMAKE_Fortran_MODULE_DIRECTORY}
 )
 
 if(NOT CMAKE_BUILD_TYPE)
@@ -39,7 +47,6 @@ if(NOT CMAKE_BUILD_TYPE)
 endif()
 
 include(ConfigCompilerFlags)
-#include(ConfigMath)
 
 set(SOURCES_LIBRARY
     ${PROJECT_SOURCE_DIR}/src/qfit.F90
@@ -57,7 +64,7 @@ set(SOURCES_LIBRARY
 
 add_library(qfitlib ${SOURCES_LIBRARY})
 
-if(ENABLE_TOOLS)
+if(ENABLE_QFIT_TOOLS)
     set(TOOLS_GRID
         ${PROJECT_SOURCE_DIR}/tools/grid.F90
     )
@@ -70,18 +77,14 @@ if(ENABLE_TOOLS)
         ${PROJECT_SOURCE_DIR}/tools/xyz2grid.F90
     )
 
-    set(TOOLS_SOLVER
-        ${PROJECT_SOURCE_DIR}/tools/solver.F90
-    )
-
     add_executable(grid ${TOOLS_GRID})
+    target_link_libraries (grid qfitlib ${EXTERNAL_LIBS})
+
     add_executable(xyz2grid ${TOOLS_XYZ2GRID})
+    target_link_libraries (xyz2grid qfitlib ${EXTERNAL_LIBS})
+
     add_executable(matrices ${TOOLS_MATRICES})
-    #add_executable(solver ${TOOLS_SOLVER})
-    target_link_libraries (grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
-    target_link_libraries (xyz2grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
-    target_link_libraries (matrices qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
-    #target_link_libraries (solver qfitlib ${EXTERNAL_LIBS} ${LAPACK_LIBRARIES})
-endif(ENABLE_TOOLS)
+    target_link_libraries (matrices qfitlib ${EXTERNAL_LIBS})
+endif(ENABLE_QFIT_TOOLS)
 
 install(TARGETS qfitlib ARCHIVE DESTINATION lib)
