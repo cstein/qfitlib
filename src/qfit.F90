@@ -319,9 +319,12 @@ subroutine qfit_fit(density)
         if (qfit_debug) then
             matsiz = nnuclei+nconstraints
             write(luout,*)
-            write(luout,*) "Input Density:"
             nbas = int(sqrt(real(n2bas)))
+            write(luout,*) "Input Density:"
             call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
+
+            write(luout,*) "Integrals:"
+            call output(integrals,1,nbas,1,nbas,nbas,nbas,1,luout)
 
             write(luout,*)
             write(luout,*) "Geometric Matrix (A):"

@@ -11,6 +11,7 @@ set(CMAKE_MODULE_PATH
 include(ConfigParentSettings)
 
 find_package( BLAS REQUIRED )
+find_package( LAPACK REQUIRED )
 
 if("${INTEGRAL_LIBRARY}" STREQUAL "GEN1INT")
     add_definitions(-D${INTEGRAL_LIBRARY})
@@ -51,6 +52,7 @@ set(SOURCES_LIBRARY
     ${PROJECT_SOURCE_DIR}/src/integrals.F90
     ${PROJECT_SOURCE_DIR}/src/utilities.F90
     ${PROJECT_SOURCE_DIR}/src/io.F90
+    ${PROJECT_SOURCE_DIR}/src/printpkg.F
     )
 
 add_library(qfitlib ${SOURCES_LIBRARY})
@@ -58,6 +60,10 @@ add_library(qfitlib ${SOURCES_LIBRARY})
 if(ENABLE_TOOLS)
     set(TOOLS_GRID
         ${PROJECT_SOURCE_DIR}/tools/grid.F90
+    )
+
+    set(TOOLS_MATRICES
+        ${PROJECT_SOURCE_DIR}/tools/matrices.F90
     )
 
     set(TOOLS_XYZ2GRID
@@ -70,9 +76,11 @@ if(ENABLE_TOOLS)
 
     add_executable(grid ${TOOLS_GRID})
     add_executable(xyz2grid ${TOOLS_XYZ2GRID})
+    add_executable(matrices ${TOOLS_MATRICES})
     #add_executable(solver ${TOOLS_SOLVER})
     target_link_libraries (grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
     target_link_libraries (xyz2grid qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES})
+    target_link_libraries (matrices qfitlib ${EXTERNAL_LIBS} ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES})
     #target_link_libraries (solver qfitlib ${EXTERNAL_LIBS} ${LAPACK_LIBRARIES})
 endif(ENABLE_TOOLS)
 

@@ -28,8 +28,8 @@ do k = 1, natoms
     if (trim(Z(k))=='C') nucz(k) =  6.0_dp
     if (trim(Z(k))=='N') nucz(k) =  7.0_dp
     if (trim(Z(k))=='O') nucz(k) =  8.0_dp
+    if (trim(Z(k))=='Mg')nucz(k) = 12.0_dp
     if (trim(Z(k))=='S') nucz(k) = 16.0_dp
-    if (trim(Z(k))=='Mg')nucz(k) = 24.0_dp
 enddo
 
 R = R * aa2au
