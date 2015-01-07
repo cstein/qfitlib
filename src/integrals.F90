@@ -33,7 +33,7 @@ subroutine one_electron_integrals(charges, coords, integrals)
     real(dp), intent(in), dimension(3) :: coords
     real(dp), dimension(:), intent(out) :: integrals
 
-    integrals = 0.0d0
+    integrals = 0.0_dp
 
 #if defined (GEN1INT)
     call one_e_integrals_gen1int(charges, coords, integrals)
@@ -81,7 +81,7 @@ subroutine one_e_integrals_gen1int(charges, coords, integrals)
     real(dp), dimension(:), allocatable :: real_charges
     real(dp), dimension(3,1) :: real_coords
 
-    integrals = 0.0d0
+    integrals = 0.0_dp
 
     ! treat the nuclei as non-nuclei because we want to also
     ! be able to evaluate other types of atomic charges

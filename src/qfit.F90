@@ -344,7 +344,7 @@ subroutine qfit_fit(density)
 
     ! lets do some statistics
     allocate( vfit( ntruepoints ) )
-    vfit = 0.0d0
+    vfit = zero
     do k = 1, ntruepoints
         do m = 1, nnuclei
             dr = Rm(:,m) - wrk(:,k)

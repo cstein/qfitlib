@@ -57,7 +57,7 @@ module qfit_variables
     !> this will skip any fitting
     logical, save :: qfit_only_calculate_mep = .false.
     !> remove values from the SVD subspace if lower than this value
-    real(dp) :: qfit_eps = 5.0d-4
+    real(dp) :: qfit_eps = 0.0005_dp
 
     !
     ! runtime variables
@@ -79,13 +79,13 @@ module qfit_variables
     real(dp), parameter :: aa2au = one / 0.5291772109217_dp
     ! van der waal radii for the elements
     real(dp), parameter, dimension(0:24) :: vdw_radii = (/ &
-        & 1.20d0, &
-        & 1.20d0, 1.20d0, 1.37d0, 1.45d0, &
-        & 1.45d0, 1.50d0, 1.50d0, 1.40d0, &
-        & 0.00d0, 0.00d0, 0.00d0, 0.00d0, &
-        & 0.00d0, 0.00d0, 0.00d0, 1.80d0, &
-        & 0.00d0, 0.00d0, 0.00d0, 0.00d0, &
-        & 0.00d0, 0.00d0, 0.00d0, 1.50d0 /)
+        & 1.20_dp, &
+        & 1.20_dp, 1.20_dp, 1.37_dp, 1.45_dp, &
+        & 1.45_dp, 1.50_dp, 1.50_dp, 1.40_dp, &
+        & 0.00_dp, 0.00_dp, 0.00_dp, 0.00_dp, &
+        & 0.00_dp, 0.00_dp, 0.00_dp, 1.80_dp, &
+        & 0.00_dp, 0.00_dp, 0.00_dp, 0.00_dp, &
+        & 0.00_dp, 0.00_dp, 0.00_dp, 1.50_dp /)
 
 
 end module qfit_variables
