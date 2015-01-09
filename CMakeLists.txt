@@ -19,6 +19,8 @@ if(NOT DEFINED HOST_PROGRAM)
     set(EXTERNAL_LIBS
         ${BLAS_LIBRARIES}
         ${LAPACK_LIBRARIES})
+else()
+    message("-- External host program is: ${HOST_PROGRAM}")
 endif()
 
 if("${INTEGRAL_LIBRARY}" STREQUAL "GEN1INT")
