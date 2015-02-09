@@ -69,15 +69,15 @@ if(ENABLE_QFIT_TOOLS)
     message("-- Building QFITLIB standalone tools.")
 
     set(TOOLS_GRID
-        ${PROJECT_SOURCE_DIR}/tools/grid.F90
+        ${PROJECT_SOURCE_DIR}/tools/fortran/grid.F90
     )
 
     set(TOOLS_MATRICES
-        ${PROJECT_SOURCE_DIR}/tools/matrices.F90
+        ${PROJECT_SOURCE_DIR}/tools/fortran/matrices.F90
     )
 
     set(TOOLS_XYZ2GRID
-        ${PROJECT_SOURCE_DIR}/tools/xyz2grid.F90
+        ${PROJECT_SOURCE_DIR}/tools/fortran/xyz2grid.F90
     )
 
     add_executable(grid ${TOOLS_GRID})
