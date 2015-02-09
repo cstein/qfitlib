@@ -5,6 +5,8 @@ This is an API intended to be used to fit partial atomic charges to a molecular 
 
 This library includes code to generate a simple [Connolly surface](http://en.wikipedia.org/wiki/Accessible_surface_area).
 
+If you use it, please cite it: [![DOI](https://zenodo.org/badge/doi/10.5281/zenodo.14949.svg)](http://dx.doi.org/10.5281/zenodo.14949)
+
 ## Basic usage
 
 Basic usage is carried out through the `qfit` module which you can include in your own project using invoking
