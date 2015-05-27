@@ -93,15 +93,11 @@ subroutine qfit_print_info
         write(luout, 10) qfit_nshell, qfit_vdwscale, qfit_vdwincrement
         write(luout, 11) qfit_pointdensity
     endif
-    if (qfit_only_calculate_mep) then
-        write(luout,'(/10x,a)') 'Will only print MEP. No charge-fitting will be done.'
+    if (qfit_constraint .eq. 0) then
+        write(luout,'(/10x,a)') 'WARNING: No constraints on charges imposed.'
     else
-        if (qfit_constraint .eq. 0) then
-            write(luout,'(/10x,a)') 'WARNING: No constraints on charges imposed.'
-        else
-            if (iand(1,qfit_constraint).eq.1) write(luout, 14)
-            if (iand(2,qfit_constraint).eq.2) write(luout, 15)
-        endif
+        if (iand(1,qfit_constraint).eq.1) write(luout, 14)
+        if (iand(2,qfit_constraint).eq.2) write(luout, 15)
     endif
     if (qfit_verbose) write(luout,'(/10x,a)') 'Verbose mode enabled.'
     if (qfit_debug) write(luout,'(/10x,a)') 'Debug mode enabled.'
@@ -110,9 +106,9 @@ subroutine qfit_print_info
    & 10x,'scaled by', f4.1, ' plus ', f4.1,' for each successive layer.')
  11 format(/10x,'Point density is ', f5.2, ' au^-2.')
  13 format(/10x,'Will read "',a,'" for surface points.')
- 14 format(/10x,'Constraining partial charges to reproduce the', &
+ 14 format(/10x,'Constraining fitted charges to reproduce the', &
    &       /10x,'molecular charge.')
- 15 format(/10x,'Constraining partial charges to reproduce the', &
+ 15 format(/10x,'Constraining fitted charges to reproduce the', &
            /10x,'molecular dipole.')
 
 end subroutine
@@ -183,7 +179,8 @@ subroutine qfit_fit(density)
     if (constrain_dipoles) nconstraints = nconstraints +3 ! dipoles
 
     ! Either we generate a grid and dump it to a file so we can read
-    ! it back later when fitting for many densities
+    ! it back later when fitting for many densities or we read in
+    ! a supplied file by the user
 
     ! check if the user (or we) supplied a custom file to be
     ! used to evaluate the molecular electrostatic potential ...
@@ -208,7 +205,9 @@ subroutine qfit_fit(density)
         wrk = wrk * factor
 
     else
+        !
         ! ... or create a grid around the molecule
+        !
 
         ! populates the max_layer_points array for memory management
         ! this requires that options have been set.
@@ -247,13 +246,6 @@ subroutine qfit_fit(density)
     allocate( integrals( n2bas ) )
     integrals = zero
 
-    ! determine the total potential in each point on the surface
-    if (qfit_only_calculate_mep) then
-        write(luout,'(/,a)') "** QFITLIB MEP **"
-        write(luout,'(i4)') ntruepoints
-        write(luout,*) "AU"
-    endif
-
     ! we need integrals of electronic density, hence -1
     q_one = -one
 
@@ -267,83 +259,71 @@ subroutine qfit_fit(density)
         enddo
     enddo
 
-    if (qfit_only_calculate_mep) then
+    ! populate A matrix and b vector with charge <-> surface interaction
+    do m = 1, nnuclei
         do k = 1, ntruepoints
-            write(luout,'(4F16.9)') wrk(:,k), V(k)
-        enddo
-        write(luout,'(a,/)') "*****************"
-    endif
+            dr = Rm(:,m) - wrk(:,k)
+            Rmk = sqrt( dot( dr, dr ) )
+            b(m) = b(m) + V(k) / Rmk
+            !write(*,'(A,2I4, 6F16.6)') "B", m, k, Rm(:,m), wrk(:,k)
 
-    if (.not. qfit_only_calculate_mep) then
-        ! populate A matrix and b vector with charge <-> surface interaction
-        do m = 1, nnuclei
-            do k = 1, ntruepoints
-                dr = Rm(:,m) - wrk(:,k)
-                Rmk = sqrt( dot( dr, dr ) )
-                b(m) = b(m) + V(k) / Rmk
-                !write(*,'(A,2I4, 6F16.6)') "B", m, k, Rm(:,m), wrk(:,k)
-
-                do n = 1, nnuclei
-                    dr = Rm(:,n) - wrk(:,k)
-                    Rnk = sqrt( dot( dr, dr ) )
-                    A(m,n) = A(m,n) + one / (Rmk * Rnk)
-                    !write(*,'(A,I4,5F16.10)') "    C", n, Rmk, Rnk, Rm(:,n)
-                enddo
+            do n = 1, nnuclei
+                dr = Rm(:,n) - wrk(:,k)
+                Rnk = sqrt( dot( dr, dr ) )
+                A(m,n) = A(m,n) + one / (Rmk * Rnk)
+                !write(*,'(A,I4,5F16.10)') "    C", n, Rmk, Rnk, Rm(:,n)
             enddo
         enddo
+    enddo
 
-        ! add constraints to A matrix and b vector
-        do m = 1, nconstraints
-            ioff = m+nnuclei
+    ! add constraints to A matrix and b vector
+    do m = 1, nconstraints
+        ioff = m+nnuclei
 
-            ! constrain total charge to be constant
-            if( m .eq. 1 .and. constrain_charges ) then
-                b(ioff) = total_charge
-                do n=1,nnuclei
-                    A(ioff,n) = one
-                    A(n,ioff) = one
-                enddo
-            endif
-
-            ! also constrain dipole
-            if ( m .gt. 1 .and. m .le. 4 .and. constrain_dipoles ) then
-                b(ioff) = total_dipole(m-1)
-                do n=1,nnuclei
-                    A(ioff,n) = Rm(m-1,n) - center_of_mass(m-1)
-                    A(n,ioff) = Rm(m-1,n) - center_of_mass(m-1)
-                enddo
-            endif
-        enddo
-
-
-        if (qfit_debug) then
-            matsiz = nnuclei+nconstraints
-            write(luout,*)
-            nbas = int(sqrt(real(n2bas)))
-            write(luout,*) "Input Density:"
-            call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
-
-            write(luout,*) "Integrals:"
-            call output(integrals,1,nbas,1,nbas,nbas,nbas,1,luout)
-
-            write(luout,*)
-            write(luout,*) "Geometric Matrix (A):"
-            call output(A,1,matsiz,1,matsiz,matsiz,matsiz,1,luout)
-
-            write(luout,*)
-            write(luout,*) "Potential Vector (b):"
-            call output(B,1,matsiz,1,1,matsiz,1,1,luout)
+        ! constrain total charge to be constant
+        if( m .eq. 1 .and. constrain_charges ) then
+            b(ioff) = total_charge
+            do n=1,nnuclei
+                A(ioff,n) = one
+                A(n,ioff) = one
+            enddo
         endif
 
-        ! solve the system of linear equations Ax = b using SVD
-        call linear_solve_svd( A, b, charges )
+        ! also constrain dipole
+        if ( m .gt. 1 .and. m .le. 4 .and. constrain_dipoles ) then
+            b(ioff) = total_dipole(m-1)
+            do n=1,nnuclei
+                A(ioff,n) = Rm(m-1,n) - center_of_mass(m-1)
+                A(n,ioff) = Rm(m-1,n) - center_of_mass(m-1)
+            enddo
+        endif
+    enddo
 
-        ! return the resulting charges ignoring any constraints
-        fitted_charges = charges(1:nnuclei)
+    if (qfit_debug) then
+        matsiz = nnuclei+nconstraints
+        write(luout,*)
+        nbas = int(sqrt(real(n2bas)))
+        write(luout,*) "Input Density:"
+        call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
 
-        !write(luout, '(a,i2)') "overall charge = ", total_charge
-        !write(luout, '(a,3f12.6)') "molecular dip0 = ", total_dipole
+        write(luout,*) "Integrals:"
+        call output(integrals,1,nbas,1,nbas,nbas,nbas,1,luout)
+
+        write(luout,*)
+        write(luout,*) "Geometric Matrix (A):"
+        call output(A,1,matsiz,1,matsiz,matsiz,matsiz,1,luout)
+
+        write(luout,*)
+        write(luout,*) "Potential Vector (b):"
+        call output(B,1,matsiz,1,1,matsiz,1,1,luout)
     endif
+
+    ! solve the system of linear equations Ax = b using SVD
+    call linear_solve_svd( A, b, charges )
+
+    ! return the resulting charges ignoring any constraints
+    fitted_charges = charges(1:nnuclei)
+
 
     ! lets do some statistics
     allocate( vfit( ntruepoints ) )

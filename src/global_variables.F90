@@ -53,9 +53,6 @@ module qfit_variables
     real(dp), save :: qfit_pointdensity = 0.28_dp
     !> optional file on which we are to evaluate the mep
     character(len=80), save :: qfit_mepfile = ''
-    !> whether or not to only evaluate the molecular electrostatic potential.
-    !> this will skip any fitting
-    logical, save :: qfit_only_calculate_mep = .false.
     !> remove values from the SVD subspace if lower than this value
     real(dp) :: qfit_eps = 0.0005_dp
 
