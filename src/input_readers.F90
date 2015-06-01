@@ -91,8 +91,8 @@ subroutine dalton_input(word, luinp, lupri)
         else if (trim(option(2:)) == 'MEPFIL') then
             read(luinp,*) qfit_mepfile
 
-        else if (trim(option(2:)) == 'ONLMEP') then
-            qfit_only_calculate_mep = .true.
+        else if (trim(option(2:)) == 'MPRANK') then
+            read(luinp,*) qfit_multipole_rank
 
         ! verbose output
         else if (trim(option(2:)) == 'VERBOS') then

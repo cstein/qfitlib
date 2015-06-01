@@ -131,9 +131,10 @@ end subroutine
 !!
 !! @author Casper Steinmann
 !! @param[out] charges resulting potential derived charges
-subroutine qfit_get_results( charges )
+subroutine qfit_get_results( charges, dipoles )
 
     real(dp), dimension(:), intent(out) :: charges
+    real(dp), dimension(:), intent(out), optional :: dipoles
 
     write(luout,*) "CSS: THIS WILL FAIL"
     if (size(charges) /= nnuclei) then
@@ -142,6 +143,9 @@ subroutine qfit_get_results( charges )
         stop
     endif
     charges = fitted_charges(1:nnuclei)
+    if (qfit_multipole_rank >= 1 .and. present(dipoles)) then
+        dipoles = fitted_charges(nnuclei+1:4*nnuclei)
+    endif
 
 end subroutine
 
