@@ -30,12 +30,21 @@ module qfit_variables
     !> center of mass of the molecule
     real(dp), dimension(3), save :: center_of_mass
 
+    ! matrix dimension
+    integer, save :: matdim
+
     !
     ! Run-time settings to be read in from input
     !
     !> unit to write to for output (default is stdout)
     integer, save :: luout = 6
 
+    !> largest multipole moment rank used in fitting
+    !> 0: charges
+    !> 1: charges + dipoles
+    !> 2: charges + dipoles + quadrupoles
+    !> default: 0, charges.
+    integer, save :: qfit_multipole_rank = 0
     !> bitwise additive option for constraints
     !> 0: nothing
     !> 1: charges
