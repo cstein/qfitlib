@@ -88,11 +88,11 @@ subroutine qfit_print_info
 
     use qfit_variables
 
-    if (qfit_multipole_order .eq. 2) then
+    if (qfit_multipole_rank .eq. 2) then
         write(luout, 16) 'charges, dpioles and quadrupoles'
-    elseif (qfit_multipole_order .eq. 1) then
+    elseif (qfit_multipole_rank .eq. 1) then
         write(luout, 16) 'charges and dipoles'
-    elseif (qfit_multipole_order .eq. 0) then
+    elseif (qfit_multipole_rank .eq. 0) then
         write(luout, 16) 'charges'
     else
         write(luout, '(/10x,a)') 'WARNING: multipole order not understood.'
@@ -108,7 +108,7 @@ subroutine qfit_print_info
         write(luout,'(/10x,a)') 'WARNING: No constraints on charges imposed.'
     else
         if (iand(1,qfit_constraint).eq.1) write(luout, 14)
-        if (iand(2,qfit_constraint).eq.2 .and. qfit_multipole_order .eq. 0) write(luout, 15)
+        if (iand(2,qfit_constraint).eq.2 .and. qfit_multipole_rank .eq. 0) write(luout, 15)
     endif
     if (qfit_verbose) write(luout,'(/10x,a)') 'Verbose mode enabled.'
     if (qfit_debug) write(luout,'(/10x,a)') 'Debug mode enabled.'
@@ -185,16 +185,16 @@ subroutine qfit_fit(density)
     ! get dimensions of matrices/vectors according to order of multipole moments
     ! we always assume charges and dimensionality is nnuclei
     matdim = nnuclei
-    if (qfit_multipole_order >= 1) then
+    if (qfit_multipole_rank >= 1) then
         matdim = matdim + 3*nnuclei
     endif
-    if (qfit_multipole_order >= 2) then
+    if (qfit_multipole_rank >= 2) then
         matdim = matdim + 5*nnuclei
     endif
 
     ! set constraints based on options
     constrain_charges = iand(1,qfit_constraint) .ne. 0
-    constrain_dipoles = iand(2,qfit_constraint) .ne. 0 .and. qfit_multipole_order .eq. 0
+    constrain_dipoles = iand(2,qfit_constraint) .ne. 0 .and. qfit_multipole_rank .eq. 0
 
     ! obtain the number of constraints we need to take into account
     nconstraints = 0
@@ -283,7 +283,7 @@ subroutine qfit_fit(density)
     enddo
 
     call a_qq(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
-    if (qfit_multipole_order >= 1) then
+    if (qfit_multipole_rank >= 1) then
         call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
         call a_qd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
         call a_qd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)

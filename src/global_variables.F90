@@ -39,12 +39,12 @@ module qfit_variables
     !> unit to write to for output (default is stdout)
     integer, save :: luout = 6
 
-    !> largest multipole moment order used in fitting
+    !> largest multipole moment rank used in fitting
     !> 0: charges
     !> 1: charges + dipoles
     !> 2: charges + dipoles + quadrupoles
     !> default: 0, charges.
-    integer, save :: qfit_multipole_order = 0
+    integer, save :: qfit_multipole_rank = 0
     !> bitwise additive option for constraints
     !> 0: nothing
     !> 1: charges
