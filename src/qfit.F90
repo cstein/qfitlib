@@ -169,7 +169,7 @@ subroutine qfit_fit(density)
     ! local arrays
     real(dp), dimension(:,:), allocatable :: wrk
     real(dp), dimension(:), allocatable :: integrals
-    real(dp), dimension(:), allocatable :: V, vcharges, vdipoles
+    real(dp), dimension(:), allocatable :: V, vcharges, vdipoles, vquadrupoles
     real(dp), dimension(:,:), allocatable :: A
     real(dp), dimension(:), allocatable :: b
 
@@ -351,8 +351,10 @@ subroutine qfit_fit(density)
     ! lets do some statistics
     allocate(vcharges(ntruepoints))
     allocate(vdipoles(ntruepoints))
+    allocate(vquadrupoles(ntruepoints))
     vcharges = zero
     vdipoles = zero
+    vquadrupoles = zero
     do k = 1, ntruepoints
         do m = 1, nnuclei
             dr = Rm(:,m) - wrk(:,k)
@@ -369,16 +371,21 @@ subroutine qfit_fit(density)
 
         enddo
         if (qfit_debug) then
-            write(luout,'(A,4F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), vcharges(k), vdipoles(k), vcharges(k) + vdipoles(k)
+            write(luout,'(A,5F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), &
+   &              vcharges(k),  vdipoles(k),  vquadrupoles(k), &
+   &              vcharges(k) + vdipoles(k) + vquadrupoles(k)
+
+            !vdipoles(k) + v
         endif
-        V(k) = V(k) - (vcharges(k) + vdipoles(k))
+        V(k) = V(k) - (vcharges(k) + vdipoles(k) + vquadrupoles(k))
         V(k) = V(k)*V(k)
     enddo
     if (qfit_verbose) then
         write(luout, '(/A,F9.6)') "@ RMSE of fitted ESP = ", sqrt( sum( V ) / ntruepoints )
     endif
-    deallocate( vcharges )
     deallocate( vdipoles )
+    deallocate( vcharges )
+    deallocate( vquadrupoles )
 
     deallocate( integrals )
     deallocate( charges )
