@@ -76,6 +76,8 @@ module qfit_variables
     integer, save :: n_total_points
     !> the resulting charges
     real(dp), save, allocatable, dimension(:) :: fitted_charges
+    !> the resulting dipoles
+    real(dp), save, allocatable, dimension(:) :: fitted_dipoles
 
     ! constants
     !> @f$ \pi @f$

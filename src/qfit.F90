@@ -54,7 +54,9 @@ subroutine qfit_initialize(R, Z, Q, D, RCM)
     if (present(RCM)) center_of_mass = RCM
 
     allocate( fitted_charges(size(Z)) )
+    allocate( fitted_dipoles(3*size(Z)) )
     fitted_charges = zero
+    fitted_dipoles = zero
 
 end subroutine
 
@@ -66,6 +68,7 @@ subroutine qfit_finalize
 
     use connolly
 
+    deallocate( fitted_dipoles )
     deallocate( fitted_charges )
     call connolly_finalize
 
@@ -136,7 +139,6 @@ subroutine qfit_get_results( charges, dipoles )
     real(dp), dimension(:), intent(out) :: charges
     real(dp), dimension(:), intent(out), optional :: dipoles
 
-    write(luout,*) "CSS: THIS WILL FAIL"
     if (size(charges) /= nnuclei) then
         write(luout,'(/A)') "ERROR: Memory allocation in input to qfit_get_results"
         write(luout,'(A,I4,A,I4)') " is wrong. Expected:", nnuclei, " got:", size(charges)
@@ -144,7 +146,7 @@ subroutine qfit_get_results( charges, dipoles )
     endif
     charges = fitted_charges(1:nnuclei)
     if (qfit_multipole_rank >= 1 .and. present(dipoles)) then
-        dipoles = fitted_charges(nnuclei+1:4*nnuclei)
+        dipoles = fitted_dipoles(1:3*nnuclei)
     endif
 
 end subroutine
@@ -167,13 +169,13 @@ subroutine qfit_fit(density)
     ! local arrays
     real(dp), dimension(:,:), allocatable :: wrk
     real(dp), dimension(:), allocatable :: integrals
-    real(dp), dimension(:), allocatable :: V, vfit
+    real(dp), dimension(:), allocatable :: V, vcharges, vdipoles
     real(dp), dimension(:,:), allocatable :: A
     real(dp), dimension(:), allocatable :: b
 
     ! local variables
     real(dp) :: Rnk, Rmk
-    real(dp), dimension(3) ::  dr
+    real(dp), dimension(3) ::  dr, drhat, mu
     real(dp), dimension(1) :: q_one
     real(dp), dimension(:), allocatable :: charges
     integer :: ntotalpoints, ntruepoints
@@ -341,27 +343,42 @@ subroutine qfit_fit(density)
 
     ! return the resulting charges ignoring any constraints
     fitted_charges = charges(1:nnuclei)
+    if (qfit_multipole_rank >= 1 ) then
+        fitted_dipoles = charges(nnuclei+1:4*nnuclei)
+    endif
 
 
     ! lets do some statistics
-    allocate( vfit( ntruepoints ) )
-    vfit = zero
+    allocate(vcharges(ntruepoints))
+    allocate(vdipoles(ntruepoints))
+    vcharges = zero
+    vdipoles = zero
     do k = 1, ntruepoints
         do m = 1, nnuclei
             dr = Rm(:,m) - wrk(:,k)
             Rmk = sqrt( dot( dr, dr ) )
-            vfit(k) = vfit(k) + charges(m) / Rmk
+            vcharges(k) = vcharges(k) + fitted_charges(m) / Rmk
+            if (qfit_multipole_rank >= 1) then
+                drhat = dr / Rmk
+                mu(1) = fitted_dipoles(m)
+                mu(2) = fitted_dipoles(m+nnuclei)
+                mu(3) = fitted_dipoles(m+2*nnuclei)
+
+                vdipoles(k) = vdipoles(k) + dot(drhat, mu) / (Rmk*Rmk)
+            endif
+
         enddo
-        !if (qfit_debug) then
-        !    write(luout,'(A,2F16.10)') "Vqm, Vfit = ", V(k), vfit(k)
-        !endif
-        V(k) = V(k) - vfit(k)
+        if (qfit_debug) then
+            write(luout,'(A,4F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), vcharges(k), vdipoles(k), vcharges(k) + vdipoles(k)
+        endif
+        V(k) = V(k) - (vcharges(k) + vdipoles(k))
         V(k) = V(k)*V(k)
     enddo
     if (qfit_verbose) then
-        write(luout, '(/1x,A,F9.6)') "@ RMS of fitted ESP = ", sqrt( sum( V ) / ntruepoints )
+        write(luout, '(/A,F9.6)') "@ RMSE of fitted ESP = ", sqrt( sum( V ) / ntruepoints )
     endif
-    deallocate( vfit )
+    deallocate( vcharges )
+    deallocate( vdipoles )
 
     deallocate( integrals )
     deallocate( charges )
