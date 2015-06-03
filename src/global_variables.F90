@@ -78,6 +78,8 @@ module qfit_variables
     real(dp), save, allocatable, dimension(:) :: fitted_charges
     !> the resulting dipoles
     real(dp), save, allocatable, dimension(:) :: fitted_dipoles
+    !> the resulting traceless quadrupoles
+    real(dp), save, allocatable, dimension(:) :: fitted_quadrupoles
 
     ! constants
     !> @f$ \pi @f$
@@ -90,7 +92,7 @@ module qfit_variables
         & 1.20_dp, &
         & 1.20_dp, 1.20_dp, 1.37_dp, 1.45_dp, &
         & 1.45_dp, 1.50_dp, 1.50_dp, 1.40_dp, &
-        & 0.00_dp, 0.00_dp, 0.00_dp, 1.50_dp, &
+        & 1.35_dp, 0.00_dp, 0.00_dp, 1.50_dp, &
         & 0.00_dp, 0.00_dp, 0.00_dp, 1.80_dp /)
 
 

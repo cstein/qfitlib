@@ -55,8 +55,10 @@ subroutine qfit_initialize(R, Z, Q, D, RCM)
 
     allocate( fitted_charges(size(Z)) )
     allocate( fitted_dipoles(3*size(Z)) )
+    allocate( fitted_quadrupoles(5*size(Z)) )
     fitted_charges = zero
     fitted_dipoles = zero
+    fitted_quadrupoles = zero
 
 end subroutine
 
@@ -68,6 +70,7 @@ subroutine qfit_finalize
 
     use connolly
 
+    deallocate( fitted_quadrupoles )
     deallocate( fitted_dipoles )
     deallocate( fitted_charges )
     call connolly_finalize
@@ -134,10 +137,11 @@ end subroutine
 !!
 !! @author Casper Steinmann
 !! @param[out] charges resulting potential derived charges
-subroutine qfit_get_results( charges, dipoles )
+subroutine qfit_get_results( charges, dipoles, quadrupoles )
 
     real(dp), dimension(:), intent(out) :: charges
     real(dp), dimension(:), intent(out), optional :: dipoles
+    real(dp), dimension(:), intent(out), optional :: quadrupoles
 
     if (size(charges) /= nnuclei) then
         write(luout,'(/A)') "ERROR: Memory allocation in input to qfit_get_results"
@@ -147,6 +151,9 @@ subroutine qfit_get_results( charges, dipoles )
     charges = fitted_charges(1:nnuclei)
     if (qfit_multipole_rank >= 1 .and. present(dipoles)) then
         dipoles = fitted_dipoles(1:3*nnuclei)
+        if (qfit_multipole_rank >= 2 .and. present(quadrupoles)) then
+            quadrupoles = fitted_quadrupoles(1:5*nnuclei)
+        endif
     endif
 
 end subroutine
@@ -176,6 +183,7 @@ subroutine qfit_fit(density)
     ! local variables
     real(dp) :: Rnk, Rmk
     real(dp), dimension(3) ::  dr, drhat, mu
+    real(dp), dimension(5) ::  oo
     real(dp), dimension(1) :: q_one
     real(dp), dimension(:), allocatable :: charges
     integer :: ntotalpoints, ntruepoints
@@ -291,20 +299,20 @@ subroutine qfit_fit(density)
     !
     ! -- Fill the A matrix with data
     !
-    call a_cc(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
+    !call a_cc(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
     if (qfit_multipole_rank >= 1) then
-        call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
-        call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+        !call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
+        !call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
         call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
 
         if (qfit_multipole_rank >= 2) then
-            call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
-            call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+            !call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
+            !call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
-            call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
-            call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+            !call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+            !call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
-            call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
+            !call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
         endif
     endif
 
@@ -348,9 +356,9 @@ subroutine qfit_fit(density)
 
         write(luout,*)
         write(luout,*) "Potential Vector (b):"
-        call output(B,1,matsiz,1,1,matsiz,1,1,luout)
+        !call output(B,1,matsiz,1,1,matsiz,1,1,luout)
     endif
-
+    STOP 'DEBUG EXIT'
     !
     ! solve the system of linear equations Ax = b using SVD
     !
@@ -360,6 +368,9 @@ subroutine qfit_fit(density)
     fitted_charges = charges(1:nnuclei)
     if (qfit_multipole_rank >= 1 ) then
         fitted_dipoles = charges(nnuclei+1:4*nnuclei)
+        if (qfit_multipole_rank >= 2) then
+            fitted_quadrupoles = charges(4*nnuclei+1:9*nnuclei)
+        endif
     endif
 
 
@@ -382,13 +393,25 @@ subroutine qfit_fit(density)
                 mu(3) = fitted_dipoles(m+2*nnuclei)
 
                 vdipoles(k) = vdipoles(k) + dot(drhat, mu) / (Rmk*Rmk)
+                if (qfit_multipole_rank >= 2) then
+                    oo(1) = fitted_quadrupoles(m)
+                    oo(2) = fitted_quadrupoles(m+nnuclei)
+                    oo(3) = fitted_quadrupoles(m+2*nnuclei)
+                    oo(4) = fitted_quadrupoles(m+3*nnuclei)
+                    oo(5) = fitted_quadrupoles(m+4*nnuclei)
+
+                    vquadrupoles(k) = vquadrupoles(k) + &
+  &  (drhat(1)*oo(1)*drhat(1) + drhat(1)*oo(2)*drhat(2) + drhat(1)*oo(3)*drhat(3) + &
+  &  drhat(2)*oo(2)*drhat(1) + drhat(2)*oo(4)*drhat(2) + drhat(2)*oo(5)*drhat(3) + &
+  &  drhat(3)*oo(3)*drhat(1) + drhat(3)*oo(5)*drhat(2)) / (Rmk*Rmk*Rmk)
+                endif
             endif
 
         enddo
         if (qfit_debug) then
-!            write(luout,'(A,5F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), &
-!   &              vcharges(k),  vdipoles(k),  vquadrupoles(k), &
-!   &              vcharges(k) + vdipoles(k) + vquadrupoles(k)
+            write(luout,'(A,5F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), &
+   &              vcharges(k),  vdipoles(k),  vquadrupoles(k), &
+   &              vcharges(k) + vdipoles(k) + vquadrupoles(k)
         endif
         V(k) = V(k) - (vcharges(k) + vdipoles(k) + vquadrupoles(k))
         V(k) = V(k)*V(k)
@@ -543,6 +566,7 @@ subroutine a_cd(A, V, Rs)
     enddo
 end subroutine a_cd
 
+
 subroutine a_dd(A, b, V, Rs)
 
     use qfit_utilities, only : dot
@@ -566,25 +590,27 @@ subroutine a_dd(A, b, V, Rs)
     A = 0.0_dp
     b = 0.0_dp
 
-    ! i,j are cartesian components (x, y and z)
+    ! i, j are cartesian components (x, y and z) of the dipoles
     do i = 1, 3
-        do m = 1, nm
-            midx = (i-1)*nm + m
-            do k = 1, ntruepoints
-                drmk = Rm(:,m) - Rs(:,k)
-                Rmk = sqrt( dot( drmk, drmk ) )
-                Rmk3 = Rmk**3
-                b( midx ) = b( midx ) + V(k) * drmk(i) / Rmk3
+
+        ! loop over dipoles
+        do n = 1, nn
+            nidx = (i-1)*nn + n
+            do k = 1, 1 !ntruepoints
+                drnk = Rm(:,n) - Rs(:,k)
+                Rnk = sqrt( dot( drnk, drnk ) )
+                Rnk3 = Rnk**3
+                b( nidx ) = b( nidx ) + V(k) * drnk(i) / Rnk3
                 !write(*,'(A,2I4, 6F16.6)') "B", m, k, Rm(:,m), wrk(:,k)
 
                 do j = 1, 3
-                    do n = 1, nm
-                        nidx = (j-1)*nn + n
-                        drnk = Rm(:,n) - Rs(:,k)
-                        Rnk = sqrt( dot( drnk, drnk ) )
-                        Rnk3 = Rnk**3
+                    do m = 1, nm
+                        midx = (j-1)*nm + m
+                        drmk = Rm(:,m) - Rs(:,k)
+                        Rmk = sqrt( dot( drmk, drmk ) )
+                        Rmk3 = Rmk**3
                         A(midx, nidx) = A(midx, nidx) + drmk(i)*drnk(j) / (Rmk3 * Rnk3)
-                        !write(*,'(A,I4,5F16.10)') "    C", n, Rmk, Rnk, Rm(:,n)
+                        write(*,'(2i4,A,2i3,A,2I3, 3F16.5)') j, i, " A(", m, n, ")", midx, nidx, Rmk3, Rnk3
                     enddo
                 enddo
             enddo
