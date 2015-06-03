@@ -288,13 +288,25 @@ subroutine qfit_fit(density)
         enddo
     enddo
 
-    call a_qq(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
+    !
+    ! -- Fill the A matrix with data
+    !
+    call a_cc(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
     if (qfit_multipole_rank >= 1) then
+        call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
+        call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
         call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
-        call a_qd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
-        call a_qd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+
+        if (qfit_multipole_rank >= 2) then
+            call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
+            call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+
+            call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+            call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+
+            call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
+        endif
     endif
-    ! populate A matrix and b vector with charge <-> surface interaction
 
     ! add constraints to A matrix and b vector
     do m = 1, nconstraints
@@ -319,15 +331,16 @@ subroutine qfit_fit(density)
         endif
     enddo
 
+
     if (qfit_debug) then
         matsiz = matdim+nconstraints
         write(luout,*)
         nbas = int(sqrt(real(n2bas)))
         write(luout,*) "Input Density:"
-        call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
+        !call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
 
         write(luout,*) "Integrals:"
-        call output(integrals,1,nbas,1,nbas,nbas,nbas,1,luout)
+        !call output(integrals,1,nbas,1,nbas,nbas,nbas,1,luout)
 
         write(luout,*)
         write(luout,*) "Geometric Matrix (A):"
@@ -335,10 +348,12 @@ subroutine qfit_fit(density)
 
         write(luout,*)
         write(luout,*) "Potential Vector (b):"
-        call output(B,1,matsiz,1,1,matsiz,1,1,luout)
+        !call output(B,1,matsiz,1,1,matsiz,1,1,luout)
     endif
 
+    !
     ! solve the system of linear equations Ax = b using SVD
+    !
     call linear_solve_svd( A, b, charges )
 
     ! return the resulting charges ignoring any constraints
@@ -371,11 +386,9 @@ subroutine qfit_fit(density)
 
         enddo
         if (qfit_debug) then
-            write(luout,'(A,5F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), &
-   &              vcharges(k),  vdipoles(k),  vquadrupoles(k), &
-   &              vcharges(k) + vdipoles(k) + vquadrupoles(k)
-
-            !vdipoles(k) + v
+!            write(luout,'(A,5F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), &
+!   &              vcharges(k),  vdipoles(k),  vquadrupoles(k), &
+!   &              vcharges(k) + vdipoles(k) + vquadrupoles(k)
         endif
         V(k) = V(k) - (vcharges(k) + vdipoles(k) + vquadrupoles(k))
         V(k) = V(k)*V(k)
@@ -401,7 +414,16 @@ subroutine qfit_fit(density)
 
 end subroutine qfit_fit
 
-subroutine a_qq(A, b, V, Rs)
+
+!> @brief fills matrix A with charge-charge contributions
+!!
+!! @author Casper Steinmann
+!!
+!! @param [inout] A subblock of matrix A containing the charge-charge interaction
+!! @param [inout] b subblock of the rhs vector B containing the QM potential
+!! @param [in] V qm potential
+!! @param [in] Rs surface points
+subroutine a_cc(A, b, V, Rs)
 
     use qfit_utilities, only : dot
 
@@ -438,9 +460,9 @@ subroutine a_qq(A, b, V, Rs)
             enddo
         enddo
     enddo
-end subroutine a_qq
+end subroutine a_cc
 
-subroutine a_qd(A, V, Rs)
+subroutine a_cd(A, V, Rs)
 
     use qfit_utilities, only : dot
 
@@ -487,24 +509,28 @@ subroutine a_qd(A, V, Rs)
 
     ! i is a cartesian component (x, y or z)
     do i = 1, 3
+
+        ! loop over charges
         do n = 1, nn
             nidx = n
             do k = 1, ntruepoints
                 dr = Rm(:,n) - Rs(:,k)
                 Rnk = sqrt(dot( dr, dr ))
                 drmnk = dr(i)
+
+                ! loop over dipoles
                 do m = 1, nm
                     dr = Rm(:,m) - Rs(:,k)
                     Rmk = sqrt(dot( dr, dr ))
                     midx = m
                     if (istranspose) then
                         midx = (i-1)*nm+m
-                        R3 = Rmk * Rmk * Rmk
+                        R3 = Rmk**3
                         drmnk = dr(i)
                         Rmnk = Rnk
                     else
                         nidx = (i-1)*nn+n
-                        R3 = Rnk * Rnk * Rnk
+                        R3 = Rnk**3
                         Rmnk = Rmk
                     end if
                     A(midx, nidx) = A(midx, nidx) + drmnk/(R3*Rmnk)
@@ -515,7 +541,7 @@ subroutine a_qd(A, V, Rs)
         enddo
 
     enddo
-end subroutine a_qd
+end subroutine a_cd
 
 subroutine a_dd(A, b, V, Rs)
 
@@ -527,9 +553,10 @@ subroutine a_dd(A, b, V, Rs)
     real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
 
     real(dp) :: Rmk, Rnk, Rmk3, Rnk3
-    real(dp), dimension(3) :: drm, drn
+    real(dp), dimension(3) :: drmk, drnk
     integer :: i, j, k, m, n
     integer :: nm, nn
+    integer :: midx, nidx
     integer :: ntruepoints
 
     nm = size(A,1) / 3
@@ -542,19 +569,21 @@ subroutine a_dd(A, b, V, Rs)
     ! i,j are cartesian components (x, y and z)
     do i = 1, 3
         do m = 1, nm
+            midx = (i-1)*nm + m
             do k = 1, ntruepoints
-                drm = Rm(:,m) - Rs(:,k)
-                Rmk = sqrt( dot( drm, drm ) )
-                Rmk3 = Rmk*Rmk*Rmk
-                b( (i-1)*nm + m ) = b( (i-1)*nm + m ) + V(k) * drm(i) / Rmk3
+                drmk = Rm(:,m) - Rs(:,k)
+                Rmk = sqrt( dot( drmk, drmk ) )
+                Rmk3 = Rmk**3
+                b( midx ) = b( midx ) + V(k) * drmk(i) / Rmk3
                 !write(*,'(A,2I4, 6F16.6)') "B", m, k, Rm(:,m), wrk(:,k)
 
                 do j = 1, 3
                     do n = 1, nm
-                        drn = Rm(:,n) - Rs(:,k)
-                        Rnk = sqrt( dot( drn, drn ) )
-                        Rnk3 = Rnk*Rnk*Rnk
-                        A( (i-1)*nm +m, (j-1)*nm + n) = A( (i-1)*nm +m, (j-1)*nm + n) + drm(i)*drn(j) / (Rmk3 * Rnk3)
+                        nidx = (j-1)*nn + n
+                        drnk = Rm(:,n) - Rs(:,k)
+                        Rnk = sqrt( dot( drnk, drnk ) )
+                        Rnk3 = Rnk**3
+                        A(midx, nidx) = A(midx, nidx) + drmk(i)*drnk(j) / (Rmk3 * Rnk3)
                         !write(*,'(A,I4,5F16.10)') "    C", n, Rmk, Rnk, Rm(:,n)
                     enddo
                 enddo
@@ -562,5 +591,292 @@ subroutine a_dd(A, b, V, Rs)
         enddo
     enddo
 end subroutine a_dd
+
+subroutine a_cq(A, V, Rs)
+
+    use qfit_utilities, only : dot
+
+    real(dp), dimension(:,:), intent(inout) :: A
+    real(dp), dimension(:), intent(in) ::  V
+    real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
+
+    real(dp) :: Rmk, Rnk, R5, Rmnk, drmnk
+    real(dp), dimension(3) :: dr, R
+    integer :: i, j, k, m, n
+    integer :: midx, nidx
+    integer :: nm, nn, nmt, nnt
+    integer :: ntruepoints
+    logical :: istranspose
+
+    A = 0.0_dp
+
+    ! figure out which dimension is the largest
+    nmt = size(A,1)
+    nnt = size(A,2)
+    ntruepoints = size(V)
+
+    istranspose = .true.
+    nm = nmt / 5
+    nn = nnt
+    if (nn.gt.nm) then
+        istranspose = .false.
+        nm = nmt
+        nn = nnt / 5
+    endif
+    !write(*,*) "is tranpose?", istranspose
+    ! if transpose
+    !   m is quadrupole
+    !   n is charge
+    ! otherise
+    !   m is charge
+    !   n is quadrupole
+
+
+    ! i is a cartesian component (x, y or z)
+    do i = 1, 2 ! only over x and y
+        do j = i, 3 ! x, y and z
+
+            ! loop over q_n charges
+            do n = 1, nn
+                nidx = n
+
+                ! loop over surface
+                do k = 1, ntruepoints
+                    dr = Rm(:,n) - Rs(:,k)
+                    R = dr
+                    Rnk = sqrt(dot( dr, dr ))
+
+                    ! loop over O_m quadrupoles
+                    do m = 1, nm
+                        dr = Rm(:,m) - Rs(:,k)
+                        Rmk = sqrt(dot( dr, dr ))
+                        midx = m
+
+                        if (istranspose) then
+                            midx = (i-1)*nm+m + (j-1)*3 + (i-1)*3
+                            R5 = Rmk**5
+                            Rmnk = Rnk
+                            R = dr
+                        else
+                            nidx = (i-1)*nn+n + (j-1)*3 + (i-1)*3
+                            R5 = Rnk**5
+                            Rmnk = Rmk
+                        end if
+
+                        A(midx, nidx) = A(midx, nidx) + f(R,i,j)/(R5*Rmnk)
+                        ! A(m,n) = A(m,n) + one / (Rmk * Rnk)
+                        !write(*,'(2i4,A,2i3,A,2I3, 3F16.5)') i, j, " A(", m, n, ")", midx, nidx, f(dr, i, j), R5, Rmnk
+                    enddo
+                enddo
+            enddo
+        enddo
+    enddo
+end subroutine a_cq
+
+subroutine a_dq(A, V, Rs)
+
+    use qfit_utilities, only : dot
+
+    real(dp), dimension(:,:), intent(inout) :: A
+    real(dp), dimension(:), intent(in) ::  V
+    real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
+
+    real(dp) :: Rmk, Rnk, R5, R3, Rmnk, drmnk
+    real(dp), dimension(3) :: dr, R
+    integer :: i, j, k, m, n
+    integer :: alpha
+    integer :: midx, nidx
+    integer :: nm, nn, nmt, nnt
+    integer :: ntruepoints
+    logical :: istranspose
+
+    ! figure out which dimension is the largest
+    nmt = size(A,1)
+    nnt = size(A,2)
+    ntruepoints = size(V)
+
+    A = 0.0_dp
+
+    istranspose = .true.
+    nm = nmt / 5
+    nn = nnt / 3
+    if (nn.gt.nm) then
+        istranspose = .false.
+        nm = nmt / 3
+        nn = nnt / 5
+    endif
+    !write(*,*) "nm,nn:", nmt, nnt
+    !write(*,*) "is tranpose?", istranspose
+    ! if transpose
+    !   m is quadrupole
+    !   n is dipole
+    ! otherise
+    !   m is dipole
+    !   n is quadrupole
+
+
+    ! i is a cartesian component (x, y or z)
+    ! the i, j loops are over Cartesian components
+    ! of the quadrupole moments
+    do i = 1, 2 ! only over x and y
+        do j = i, 3 ! x, y and z
+
+            ! alpha is a Cartesian component over the dipole
+            do alpha = 1, 3
+
+                ! loop over mu_n dipoles
+                do n = 1, nn
+                    nidx = n + (alpha-1)*3
+
+                    ! loop over surface
+                    do k = 1, ntruepoints
+                        dr = Rm(:,n) - Rs(:,k)
+                        R = dr
+                        drmnk = dr(alpha)
+                        Rnk = sqrt(dot( dr, dr ))
+
+                        ! loop over O_m quadrupoles
+                        do m = 1, nm
+                            dr = Rm(:,m) - Rs(:,k)
+                            Rmk = sqrt(dot( dr, dr ))
+                            midx = m + (alpha-1)*3
+
+                            if (istranspose) then
+                                midx = (i-1)*nm+m + (j-1)*3 + (i-1)*3
+                                R5 = Rmk**5
+                                R3 = Rnk**3
+                                R = dr
+                            else
+                                nidx = (i-1)*nn+n + (j-1)*3 + (i-1)*3
+                                R5 = Rnk**5
+                                R3 = Rmk**3
+                                drmnk = dr(alpha)
+                            end if
+
+                            A(midx, nidx) = A(midx, nidx) + drmnk*f(R,i,j)/(R5*R3)
+                            ! A(m,n) = A(m,n) + one / (Rmk * Rnk)
+                            !write(*,'(3i4,A,2i3,A,2I3,4F9.2)') i, j, alpha, " A(", m, n, ")", midx, nidx, R5, R3, drmnk, f(R, i, j)
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+    enddo
+end subroutine a_dq
+
+subroutine a_qq(A, b, V, Rs)
+
+    use qfit_utilities, only : dot
+
+    real(dp), dimension(:,:), intent(inout) :: A
+    real(dp), dimension(:), intent(inout) :: b
+    real(dp), dimension(:), intent(in) ::  V
+    real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
+
+    real(dp) :: Rmk, Rnk, Rmk5, Rnk5
+    real(dp), dimension(3) :: drmk, drnk
+    integer :: i, j, k, m, n
+    integer :: alpha, beta
+    integer :: midx, nidx
+    integer :: nm, nn, nmt, nnt
+    integer :: ntruepoints
+
+    ! figure out which dimension is the largest
+    nmt = size(A,1)
+    nnt = size(A,2)
+    ntruepoints = size(V)
+
+    A = 0.0_dp
+    b = 0.0_dp
+
+    nm = nmt / 5
+    nn = nnt / 5
+    !write(*,*) "nm,nn:", nmt, nnt
+
+
+    ! i is a cartesian component (x, y or z)
+    ! the i, j loops are over Cartesian components
+    ! of the quadrupole moments
+
+    ! alpha and beta are Cartesian components over the other quadrupole
+    do alpha = 1, 2
+        do beta = alpha, 3
+
+            ! loop over O_{alpha, beta} quadrupoles
+            do n = 1, nn
+                !nidx = n + (alpha-1)*3
+                nidx = (alpha-1)*nn+n + (beta-1)*3 + (alpha-1)*3
+
+                ! loop over surface
+                do k = 1, ntruepoints
+                    drnk = Rm(:,n) - Rs(:,k)
+                    Rnk = sqrt(dot( drnk, drnk ))
+                    Rnk5 = Rnk**5
+                    b( nidx ) = b( nidx ) + V(k) * drnk(alpha)*drnk(beta) / Rnk5
+
+                    do i = 1, 2 ! only over x and y
+                        do j = i, 3 ! x, y and z
+                            ! loop over O_m quadrupoles
+                            do m = 1, nm
+                                drmk = Rm(:,m) - Rs(:,k)
+                                Rmk = sqrt(dot( drmk, drmk ))
+                                Rmk5 = Rmk**5
+                                !midx = m + (alpha-1)*3
+                                midx = (i-1)*nm+m + (j-1)*3 + (i-1)*3
+
+                                !if (istranspose) then
+                                !    R5 = Rmk**5
+                                !    R3 = Rnk**3
+                                !    R = dr
+                                !else
+                                !    nidx = (i-1)*nn+n + (j-1)*3 + (i-1)*3
+                                !    R5 = Rnk**5
+                                !    R3 = Rmk**3
+                                !    drmnk = dr(alpha)
+                                !end if
+
+                                A(midx, nidx) = A(midx, nidx) + f(drmk, i, j)*f(drnk, alpha, beta)/(Rnk5 * Rmk5)
+                                ! A(m,n) = A(m,n) + one / (Rmk * Rnk)
+                                !write(*,'(4i4,A,2i3,A,2I3)') i, j, alpha, beta, " A(", m, n, ")", midx, nidx
+                            enddo
+                        enddo
+                    enddo
+                enddo
+            enddo
+        enddo
+    enddo
+end subroutine a_qq
+
+!> @brief Switching function for traceless quadrupole moment calculations.
+!!
+!! @author Casper Steinmann
+!!
+!! @param[in] r distance vector
+!! @param[in] alpha cartesian component index (1, 2 or 3)
+!! @param[in] beta cartesian component index (1, 2 or 3)
+!!
+!! @see S. Jakobsen, F. Jensen, J. Chem. Theory Comput. (2014), 10, 5493-5504
+!!      DOI: 10.1021/ct500803r
+real(dp) function f(r, alpha, beta)
+
+    real(dp), dimension(3), intent(in) :: r
+    integer, intent(in) :: alpha
+    integer, intent(in) :: beta
+
+    ! let's do some sanity checks
+    if (alpha < 1 .or. alpha > 3) then
+        stop 'Invalid index specified for alpha.'
+    endif
+
+    if (beta < 1 .or. beta  > 3) then
+        stop 'Invalid index specified for beta.'
+    endif
+
+    f = 2.0_dp * r(alpha) * r(beta)
+    if (alpha .eq. beta) then
+        f = r(alpha)*r(beta) - r(3)*r(3)
+    endif
+
+end function f
 
 end module qfit
