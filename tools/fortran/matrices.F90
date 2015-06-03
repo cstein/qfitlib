@@ -56,7 +56,8 @@ enddo
 R = R * aa2au
 
 qfit_debug = .true.
-qfit_multipole_rank = 1
+qfit_multipole_rank = 2
+qfit_vdwscale = 1.0
 qfit_nshell = 4
 call qfit_initialize( R, nucz, 0, d, cm )
 call qfit_print_info()
