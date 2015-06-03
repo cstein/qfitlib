@@ -301,9 +301,9 @@ subroutine qfit_fit(density)
     !
     !call a_cc(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
     if (qfit_multipole_rank >= 1) then
-        !call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
-        !call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
-        call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
+        call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
+        call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+        !call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
 
         if (qfit_multipole_rank >= 2) then
             !call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
@@ -536,6 +536,7 @@ subroutine a_cd(A, V, Rs)
         ! loop over charges
         do n = 1, nn
             nidx = n
+
             do k = 1, ntruepoints
                 dr = Rm(:,n) - Rs(:,k)
                 Rnk = sqrt(dot( dr, dr ))
@@ -558,7 +559,7 @@ subroutine a_cd(A, V, Rs)
                     end if
                     A(midx, nidx) = A(midx, nidx) + drmnk/(R3*Rmnk)
                     ! A(m,n) = A(m,n) + one / (Rmk * Rnk)
-                    !write(*,'(i4,A,2i3,A,2I3, 3F9.4)') i, " A(", m, n, ")", midx, nidx, dr(i), R3, Rnk
+                    !write(*,'(i4,A,2i3,A,2I3, 3F16.5)') i, " A(", m, n, ")", midx, nidx, drmnk, R3, Rmnk
                 enddo
             enddo
         enddo
@@ -596,7 +597,7 @@ subroutine a_dd(A, b, V, Rs)
         ! loop over dipoles
         do n = 1, nn
             nidx = (i-1)*nn + n
-            do k = 1, 1 !ntruepoints
+            do k = 1, ntruepoints
                 drnk = Rm(:,n) - Rs(:,k)
                 Rnk = sqrt( dot( drnk, drnk ) )
                 Rnk3 = Rnk**3
@@ -610,7 +611,7 @@ subroutine a_dd(A, b, V, Rs)
                         Rmk = sqrt( dot( drmk, drmk ) )
                         Rmk3 = Rmk**3
                         A(midx, nidx) = A(midx, nidx) + drmk(i)*drnk(j) / (Rmk3 * Rnk3)
-                        write(*,'(2i4,A,2i3,A,2I3, 3F16.5)') j, i, " A(", m, n, ")", midx, nidx, Rmk3, Rnk3
+                        !write(*,'(2i4,A,2i3,A,2I3, 3F16.5)') j, i, " A(", m, n, ")", midx, nidx, Rmk3, Rnk3
                     enddo
                 enddo
             enddo
