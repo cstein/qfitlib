@@ -348,7 +348,7 @@ subroutine qfit_fit(density)
 
         write(luout,*)
         write(luout,*) "Potential Vector (b):"
-        !call output(B,1,matsiz,1,1,matsiz,1,1,luout)
+        call output(B,1,matsiz,1,1,matsiz,1,1,luout)
     endif
 
     !
