@@ -299,20 +299,20 @@ subroutine qfit_fit(density)
     !
     ! -- Fill the A matrix with data
     !
-    !call a_cc(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
+    call a_cc(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
     if (qfit_multipole_rank >= 1) then
-        !call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
-        !call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
-        !call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
+        call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
+        call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+        call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
 
         if (qfit_multipole_rank >= 2) then
-            !call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
-            !call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+            call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
+            call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
             call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
             call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
-            !call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
+            call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
         endif
     endif
 
