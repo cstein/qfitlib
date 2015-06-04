@@ -514,7 +514,7 @@ subroutine a_cd(A, V, Rs)
     ! otherwise, it is the transpose
     nm = nmt / 3
     nn = nnt
-    if (nn.gt.nm) then
+    if (nnt.gt.nmt) then
         istranspose = .false.
         nm = nmt
         nn = nnt / 3
@@ -708,7 +708,7 @@ subroutine a_dq(A, V, Rs)
     real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
 
     real(dp) :: Rmk, Rnk, R5, R3, drmnk
-    real(dp), dimension(3) :: dr, R
+    real(dp), dimension(3) :: drmk, drnk, R
     integer :: i, j, k, m, n
     integer :: alpha
     integer :: midx, nidx
@@ -726,7 +726,7 @@ subroutine a_dq(A, V, Rs)
     istranspose = .true.
     nm = nmt / 5
     nn = nnt / 3
-    if (nn.gt.nm) then
+    if (nnt.gt.nmt) then
         istranspose = .false.
         nm = nmt / 3
         nn = nnt / 5
@@ -750,15 +750,13 @@ subroutine a_dq(A, V, Rs)
 
             ! loop over surface
             do k = 1, ntruepoints
-                dr = Rm(:,n) - Rs(:,k)
-                R = dr
-                drmnk = dr(alpha)
-                Rnk = sqrt(dot( dr, dr ))
+                drnk = Rm(:,n) - Rs(:,k)
+                Rnk = sqrt(dot( drnk, drnk ))
 
                 ! loop over O_m quadrupoles
                 do m = 1, nm
-                    dr = Rm(:,m) - Rs(:,k)
-                    Rmk = sqrt(dot( dr, dr ))
+                    drmk = Rm(:,m) - Rs(:,k)
+                    Rmk = sqrt(dot( drmk, drmk ))
                     midx = m + (alpha-1)*nm
 
                     ! i is a cartesian component (x, y or z)
@@ -771,12 +769,14 @@ subroutine a_dq(A, V, Rs)
                                 midx = (i-1)*nm+m + (j-1)*nm + (i-1)*nm
                                 R5 = Rmk**5
                                 R3 = Rnk**3
-                                R = dr
+                                R = drmk
+                                drmnk = drnk(alpha)
                             else
                                 nidx = (i-1)*nn+n + (j-1)*nn + (i-1)*nn
                                 R5 = Rnk**5
                                 R3 = Rmk**3
-                                drmnk = dr(alpha)
+                                R = drnk
+                                drmnk = drmk(alpha)
                             end if
 
                             A(midx, nidx) = A(midx, nidx) + drmnk*f(R,i,j)/(R5*R3)
