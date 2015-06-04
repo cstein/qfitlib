@@ -307,7 +307,7 @@ subroutine qfit_fit(density)
 
         if (qfit_multipole_rank >= 2) then
             call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
-            !call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+            call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
             !call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
             !call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
@@ -628,7 +628,7 @@ subroutine a_cq(A, V, Rs)
     real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
 
     real(dp) :: Rmk, Rnk, R5, Rmnk
-    real(dp), dimension(3) :: dr, R
+    real(dp), dimension(3) :: drnk, drmk, R
     integer :: i, j, k, m, n
     integer :: midx, nidx
     integer :: nm, nn, nmt, nnt
@@ -645,7 +645,7 @@ subroutine a_cq(A, V, Rs)
     istranspose = .true.
     nm = nmt / 5
     nn = nnt
-    if (nn.gt.nm) then
+    if (nnt.gt.nmt) then
         istranspose = .false.
         nm = nmt
         nn = nnt / 5
@@ -658,41 +658,40 @@ subroutine a_cq(A, V, Rs)
     !   m is charge
     !   n is quadrupole
 
+    ! loop over first multipole moment
+    do n = 1, nn
+        nidx = n
 
-    ! i is a cartesian component (x, y or z)
-    do i = 1, 2 ! only over x and y
-        do j = i, 3 ! x, y and z
+        ! loop over surface
+        do k = 1, ntruepoints
+            drnk = Rm(:,n) - Rs(:,k)
+            Rnk = sqrt(dot( drnk, drnk ))
 
-            ! loop over q_n charges
-            do n = 1, nn
-                nidx = n
+            ! loop over second multipole moment
+            do m = 1, nm
+                midx = m
+                drmk = Rm(:,m) - Rs(:,k)
+                Rmk = sqrt(dot( drmk, drmk ))
 
-                ! loop over surface
-                do k = 1, ntruepoints
-                    dr = Rm(:,n) - Rs(:,k)
-                    R = dr
-                    Rnk = sqrt(dot( dr, dr ))
-
-                    ! loop over O_m quadrupoles
-                    do m = 1, nm
-                        dr = Rm(:,m) - Rs(:,k)
-                        Rmk = sqrt(dot( dr, dr ))
-                        midx = m
+                ! i is a cartesian component (x, y or z)
+                do i = 1, 2 ! only over x and y
+                    do j = i, 3 ! x, y and z
 
                         if (istranspose) then
-                            midx = (i-1)*nm+m + (j-1)*3 + (i-1)*3
+                            midx = (i-1)*nm+m + (j-1)*nm + (i-1)*nm
                             R5 = Rmk**5
+                            R = drmk
                             Rmnk = Rnk
-                            R = dr
                         else
-                            nidx = (i-1)*nn+n + (j-1)*3 + (i-1)*3
+                            nidx = (i-1)*nn+n + (j-1)*nn + (i-1)*nn
                             R5 = Rnk**5
+                            R = drnk
                             Rmnk = Rmk
                         end if
 
                         A(midx, nidx) = A(midx, nidx) + f(R,i,j)/(R5*Rmnk)
                         ! A(m,n) = A(m,n) + one / (Rmk * Rnk)
-                        !write(*,'(2i4,A,2i3,A,2I3, 3F16.5)') i, j, " A(", m, n, ")", midx, nidx, f(dr, i, j), R5, Rmnk
+                        !write(*,'(2i4,A,2i3,A,2I3, 3F16.5)') i, j, " A(", m, n, ")", midx, nidx, f(R, i, j), R5, Rmnk
                     enddo
                 enddo
             enddo
