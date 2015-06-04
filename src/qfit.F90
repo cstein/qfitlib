@@ -301,8 +301,8 @@ subroutine qfit_fit(density)
     !
     !call a_cc(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
     if (qfit_multipole_rank >= 1) then
-        call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
-        call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+        !call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
+        !call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
         !call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
 
         if (qfit_multipole_rank >= 2) then
@@ -312,7 +312,7 @@ subroutine qfit_fit(density)
             !call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
             !call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
-            !call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
+            call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
         endif
     endif
 
@@ -356,9 +356,9 @@ subroutine qfit_fit(density)
 
         write(luout,*)
         write(luout,*) "Potential Vector (b):"
-        !call output(B,1,matsiz,1,1,matsiz,1,1,luout)
+        call output(B,1,matsiz,1,1,matsiz,1,1,luout)
     endif
-    STOP 'DEBUG EXIT'
+    !STOP 'DEBUG EXIT'
     !
     ! solve the system of linear equations Ax = b using SVD
     !
@@ -825,14 +825,14 @@ subroutine a_qq(A, b, V, Rs)
     ! the i, j loops are over Cartesian components
     ! of the quadrupole moments
 
-    ! alpha and beta are Cartesian components over the other quadrupole
+    ! alpha and beta are Cartesian components over the quadrupole
     do alpha = 1, 2
         do beta = alpha, 3
 
-            ! loop over O_{alpha, beta} quadrupoles
+            ! loop over O_n quadrupoles
             do n = 1, nn
                 !nidx = n + (alpha-1)*3
-                nidx = (alpha-1)*nn+n + (beta-1)*3 + (alpha-1)*3
+                nidx = (alpha-1)*nn+n + (beta-1)*nn + (alpha-1)*nn
 
                 ! loop over surface
                 do k = 1, ntruepoints
@@ -841,15 +841,18 @@ subroutine a_qq(A, b, V, Rs)
                     Rnk5 = Rnk**5
                     b( nidx ) = b( nidx ) + V(k) * drnk(alpha)*drnk(beta) / Rnk5
 
+                    ! i and j are Cartesian components over the quadrupole
                     do i = 1, 2 ! only over x and y
                         do j = i, 3 ! x, y and z
+
                             ! loop over O_m quadrupoles
                             do m = 1, nm
+                                midx = (i-1)*nm+m + (j-1)*nm + (i-1)*nm
+
                                 drmk = Rm(:,m) - Rs(:,k)
                                 Rmk = sqrt(dot( drmk, drmk ))
                                 Rmk5 = Rmk**5
                                 !midx = m + (alpha-1)*3
-                                midx = (i-1)*nm+m + (j-1)*3 + (i-1)*3
 
                                 !if (istranspose) then
                                 !    R5 = Rmk**5
