@@ -306,11 +306,11 @@ subroutine qfit_fit(density)
         !call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
 
         if (qfit_multipole_rank >= 2) then
-            call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
-            call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+            !call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
+            !call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
-            !call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
-            !call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+            call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+            call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
             !call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
         endif
@@ -741,39 +741,39 @@ subroutine a_dq(A, V, Rs)
     !   n is quadrupole
 
 
-    ! i is a cartesian component (x, y or z)
-    ! the i, j loops are over Cartesian components
-    ! of the quadrupole moments
-    do i = 1, 2 ! only over x and y
-        do j = i, 3 ! x, y and z
+    ! alpha is a Cartesian component over the dipole
+    do alpha = 1, 3
 
-            ! alpha is a Cartesian component over the dipole
-            do alpha = 1, 3
+        ! loop over mu_n dipoles
+        do n = 1, nn
+            nidx = n + (alpha-1)*nn
 
-                ! loop over mu_n dipoles
-                do n = 1, nn
-                    nidx = n + (alpha-1)*3
+            ! loop over surface
+            do k = 1, ntruepoints
+                dr = Rm(:,n) - Rs(:,k)
+                R = dr
+                drmnk = dr(alpha)
+                Rnk = sqrt(dot( dr, dr ))
 
-                    ! loop over surface
-                    do k = 1, ntruepoints
-                        dr = Rm(:,n) - Rs(:,k)
-                        R = dr
-                        drmnk = dr(alpha)
-                        Rnk = sqrt(dot( dr, dr ))
+                ! loop over O_m quadrupoles
+                do m = 1, nm
+                    dr = Rm(:,m) - Rs(:,k)
+                    Rmk = sqrt(dot( dr, dr ))
+                    midx = m + (alpha-1)*nm
 
-                        ! loop over O_m quadrupoles
-                        do m = 1, nm
-                            dr = Rm(:,m) - Rs(:,k)
-                            Rmk = sqrt(dot( dr, dr ))
-                            midx = m + (alpha-1)*3
+                    ! i is a cartesian component (x, y or z)
+                    ! the i, j loops are over Cartesian components
+                    ! of the quadrupole moments
+                    do i = 1, 2 ! only over x and y
+                        do j = i, 3 ! x, y and z
 
                             if (istranspose) then
-                                midx = (i-1)*nm+m + (j-1)*3 + (i-1)*3
+                                midx = (i-1)*nm+m + (j-1)*nm + (i-1)*nm
                                 R5 = Rmk**5
                                 R3 = Rnk**3
                                 R = dr
                             else
-                                nidx = (i-1)*nn+n + (j-1)*3 + (i-1)*3
+                                nidx = (i-1)*nn+n + (j-1)*nn + (i-1)*nn
                                 R5 = Rnk**5
                                 R3 = Rmk**3
                                 drmnk = dr(alpha)
@@ -781,7 +781,7 @@ subroutine a_dq(A, V, Rs)
 
                             A(midx, nidx) = A(midx, nidx) + drmnk*f(R,i,j)/(R5*R3)
                             ! A(m,n) = A(m,n) + one / (Rmk * Rnk)
-                            !write(*,'(3i4,A,2i3,A,2I3,4F9.2)') i, j, alpha, " A(", m, n, ")", midx, nidx, R5, R3, drmnk, f(R, i, j)
+                            !write(*,'(3i4,A,2i3,A,2I3,4F9.2)') alpha, i, j, " A(", m, n, ")", midx, nidx, R5, R3, drmnk, f(R, i, j)
                         enddo
                     enddo
                 enddo
