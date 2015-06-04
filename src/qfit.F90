@@ -181,7 +181,7 @@ subroutine qfit_fit(density)
     real(dp), dimension(:), allocatable :: b
 
     ! local variables
-    real(dp) :: Rnk, Rmk
+    real(dp) :: Rmk
     real(dp), dimension(3) ::  dr, drhat, mu
     real(dp), dimension(5) ::  oo
     real(dp), dimension(1) :: q_one
@@ -306,13 +306,13 @@ subroutine qfit_fit(density)
         !call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
 
         if (qfit_multipole_rank >= 2) then
-            !call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
+            call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
             !call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
             !call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
             !call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
 
-            call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
+            !call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
         endif
     endif
 
@@ -493,7 +493,7 @@ subroutine a_cd(A, V, Rs)
     real(dp), dimension(:), intent(in) ::  V
     real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
 
-    real(dp) :: Rmk, Rnk, R, R3, Rmnk, drmnk
+    real(dp) :: Rmk, Rnk, R3, Rmnk, drmnk
     real(dp), dimension(3) :: dr
     integer :: i, k, m, n
     integer :: midx, nidx
@@ -627,7 +627,7 @@ subroutine a_cq(A, V, Rs)
     real(dp), dimension(:), intent(in) ::  V
     real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
 
-    real(dp) :: Rmk, Rnk, R5, Rmnk, drmnk
+    real(dp) :: Rmk, Rnk, R5, Rmnk
     real(dp), dimension(3) :: dr, R
     integer :: i, j, k, m, n
     integer :: midx, nidx
@@ -708,7 +708,7 @@ subroutine a_dq(A, V, Rs)
     real(dp), dimension(:), intent(in) ::  V
     real(dp), dimension(:,:), intent(in) :: Rs ! surface coordinates
 
-    real(dp) :: Rmk, Rnk, R5, R3, Rmnk, drmnk
+    real(dp) :: Rmk, Rnk, R5, R3, drmnk
     real(dp), dimension(3) :: dr, R
     integer :: i, j, k, m, n
     integer :: alpha
