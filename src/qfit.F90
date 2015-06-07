@@ -183,7 +183,7 @@ subroutine qfit_fit(density)
     ! local variables
     real(dp) :: Rmk
     real(dp), dimension(3) ::  dr, drhat, mu
-    real(dp), dimension(5) ::  oo
+    real(dp), dimension(6) ::  oo
     real(dp), dimension(1) :: q_one
     real(dp), dimension(:), allocatable :: charges
     integer :: ntotalpoints, ntruepoints
@@ -193,6 +193,7 @@ subroutine qfit_fit(density)
     logical :: constrain_charges, constrain_dipoles
     logical :: lunit_open
     integer :: lumepinp
+    integer :: icf, ict, idf, idt, iqf, iqt
     real(dp) :: factor
     character(len=2) :: option
 
@@ -299,20 +300,26 @@ subroutine qfit_fit(density)
     !
     ! -- Fill the A matrix with data
     !
-    call a_cc(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
+    icf = 1
+    ict = nnuclei
+    idf = ict+1
+    idt = 4*nnuclei
+    iqf = idt+1
+    iqt = 9*nnuclei
+    call a_cc(A(icf:ict,icf:ict), b(icf:ict), V, wrk)
     if (qfit_multipole_rank >= 1) then
-        call a_cd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
-        call a_cd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
-        call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
+        call a_cd(A(idf:idt, icf:ict), V, wrk)
+        call a_cd(A(icf:ict, idf:idt), V, wrk)
+        call a_dd(A(idf:idt, idf:idt), b(idf:idt), V, wrk)
 
         if (qfit_multipole_rank >= 2) then
-            call a_cq(A(4*nnuclei+1:9*nnuclei, 1:nnuclei), V, wrk)
-            call a_cq(A(1:nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+            call a_cq(A(iqf:iqt, icf:ict), V, wrk)
+            call a_cq(A(icf:ict, iqf:iqt), V, wrk)
 
-            call a_dq(A(4*nnuclei+1:9*nnuclei, nnuclei+1:4*nnuclei), V, wrk)
-            call a_dq(A(nnuclei+1:4*nnuclei, 4*nnuclei+1:9*nnuclei), V, wrk)
+            call a_dq(A(idf:idt, iqf:iqt), V, wrk)
+            call a_dq(A(iqf:iqt, idf:idt), V, wrk)
 
-            call a_qq(A(4*nnuclei+1:9*nnuclei, 4*nnuclei+1:9*nnuclei), b(4*nnuclei+1:9*nnuclei), V, wrk)
+            call a_qq(A(iqf:iqt, iqf:iqt), b(iqf:iqt), V, wrk)
         endif
     endif
 
@@ -394,16 +401,23 @@ subroutine qfit_fit(density)
 
                 vdipoles(k) = vdipoles(k) + dot(drhat, mu) / (Rmk*Rmk)
                 if (qfit_multipole_rank >= 2) then
+                    ! XX
+                    ! XY
+                    ! XZ
+                    ! YY
+                    ! YZ
+                    ! (ZZ = -(XX +YY))
                     oo(1) = fitted_quadrupoles(m)
-                    oo(2) = fitted_quadrupoles(m+nnuclei)
+                    oo(2) = fitted_quadrupoles(m+1*nnuclei)
                     oo(3) = fitted_quadrupoles(m+2*nnuclei)
                     oo(4) = fitted_quadrupoles(m+3*nnuclei)
                     oo(5) = fitted_quadrupoles(m+4*nnuclei)
+                    oo(6) = -(oo(1)+oo(4))
 
                     vquadrupoles(k) = vquadrupoles(k) + &
   &  (drhat(1)*oo(1)*drhat(1) + drhat(1)*oo(2)*drhat(2) + drhat(1)*oo(3)*drhat(3) + &
   &  drhat(2)*oo(2)*drhat(1) + drhat(2)*oo(4)*drhat(2) + drhat(2)*oo(5)*drhat(3) + &
-  &  drhat(3)*oo(3)*drhat(1) + drhat(3)*oo(5)*drhat(2)) / (Rmk*Rmk*Rmk)
+  &  drhat(3)*oo(3)*drhat(1) + drhat(3)*oo(5)*drhat(2) + drhat(3)*oo(6)*drhat(3)) / (Rmk*Rmk*Rmk)
                 endif
             endif
 
@@ -691,7 +705,8 @@ subroutine a_cq(A, V, Rs)
 
                         A(midx, nidx) = A(midx, nidx) + f(R,i,j)/(R5*Rmnk)
                         ! A(m,n) = A(m,n) + one / (Rmk * Rnk)
-                        !write(*,'(2i4,A,2i3,A,2I3, 3F16.5)') i, j, " A(", m, n, ")", midx, nidx, f(R, i, j), R5, Rmnk
+                        !write(*,'(2i4,A,2i3,A,2I3, 3F16.5,F20.10)') i, j, " A(", m, n, ")", midx, nidx, f(R, i, j), & 
+    !& R5, Rmnk, f(R,i,j)/(R5*Rmnk)
                     enddo
                 enddo
             enddo
@@ -759,6 +774,9 @@ subroutine a_dq(A, V, Rs)
                     Rmk = sqrt(dot( drmk, drmk ))
                     midx = m + (alpha-1)*nm
 
+                    !write(*,*) "RNK", drnk, Rnk
+                    !write(*,*) "RMK", drmk, Rmk
+
                     ! i is a cartesian component (x, y or z)
                     ! the i, j loops are over Cartesian components
                     ! of the quadrupole moments
@@ -781,7 +799,8 @@ subroutine a_dq(A, V, Rs)
 
                             A(midx, nidx) = A(midx, nidx) + drmnk*f(R,i,j)/(R5*R3)
                             ! A(m,n) = A(m,n) + one / (Rmk * Rnk)
-                            !write(*,'(3i4,A,2i3,A,2I3,4F9.2)') alpha, i, j, " A(", m, n, ")", midx, nidx, R5, R3, drmnk, f(R, i, j)
+                            !write(*,'(3i4,A,2i3,A,2I3,4F9.2,F20.10)') alpha, i, j, " A(", m, n, ")", midx, nidx, & 
+                            !    & R5, R3, drmnk, f(R, i, j),  drmnk*f(R,i,j)/(R5*R3)
                         enddo
                     enddo
                 enddo
