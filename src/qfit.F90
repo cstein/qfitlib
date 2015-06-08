@@ -372,11 +372,11 @@ subroutine qfit_fit(density)
     call linear_solve_svd( A, b, charges )
 
     ! return the resulting charges ignoring any constraints
-    fitted_charges = charges(1:nnuclei)
+    fitted_charges = charges(icf:ict)
     if (qfit_multipole_rank >= 1 ) then
-        fitted_dipoles = charges(nnuclei+1:4*nnuclei)
+        fitted_dipoles = charges(idf:idt)
         if (qfit_multipole_rank >= 2) then
-            fitted_quadrupoles = charges(4*nnuclei+1:9*nnuclei)
+            fitted_quadrupoles = charges(iqf:iqt)
         endif
     endif
 
@@ -396,7 +396,7 @@ subroutine qfit_fit(density)
             if (qfit_multipole_rank >= 1) then
                 drhat = dr / Rmk
                 mu(1) = fitted_dipoles(m)
-                mu(2) = fitted_dipoles(m+nnuclei)
+                mu(2) = fitted_dipoles(m+1*nnuclei)
                 mu(3) = fitted_dipoles(m+2*nnuclei)
 
                 vdipoles(k) = vdipoles(k) + dot(drhat, mu) / (Rmk*Rmk)
@@ -414,10 +414,11 @@ subroutine qfit_fit(density)
                     oo(5) = fitted_quadrupoles(m+4*nnuclei)
                     oo(6) = -(oo(1)+oo(4))
 
-                    vquadrupoles(k) = vquadrupoles(k) + &
-  &  (drhat(1)*oo(1)*drhat(1) + drhat(1)*oo(2)*drhat(2) + drhat(1)*oo(3)*drhat(3) + &
-  &  drhat(2)*oo(2)*drhat(1) + drhat(2)*oo(4)*drhat(2) + drhat(2)*oo(5)*drhat(3) + &
-  &  drhat(3)*oo(3)*drhat(1) + drhat(3)*oo(5)*drhat(2) + drhat(3)*oo(6)*drhat(3)) / (Rmk*Rmk*Rmk)
+                    mu(1) = oo(1)*drhat(1) + oo(2)*drhat(2) + oo(3)*drhat(3)
+                    mu(2) = oo(2)*drhat(1) + oo(4)*drhat(2) + oo(5)*drhat(3)
+                    mu(3) = oo(3)*drhat(1) + oo(5)*drhat(2) + oo(6)*drhat(3)
+
+                    vquadrupoles(k) = vquadrupoles(k) + dot(drhat, mu) / (Rmk*Rmk*Rmk)
                 endif
             endif
 
