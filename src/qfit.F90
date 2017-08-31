@@ -51,7 +51,7 @@ subroutine qfit_initialize(R, Z, Q, mu, RCM)
     call connolly_initialize( R, Z )
 
     if (present(Q)) total_charge = Q
-    if (present(D)) total_dipole = mu
+    if (present(mu)) total_dipole = mu
     if (present(RCM)) center_of_mass = RCM
 
     allocate( fitted_charges(size(Z)) )
