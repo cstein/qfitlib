@@ -17,22 +17,23 @@ module qfit
 
     public :: qfit_initialize
     public :: qfit_finalize
+    public :: qfit_set_dipole
+    public :: qfit_set_transition_dipole
     public :: qfit_print_info
     public :: qfit_fit
     public :: qfit_get_results
-    public :: qfit_set_transition_dipole
 
     contains
 
 !------------------------------------------------------------------------------
-!> @brief initialize the charge fitting library
+!> @brief Initializes the charge fitting library
 !!
 !! @author Casper Steinmann
-!! @param[in] R the coordinates of all nuclei
-!! @param[in] Z the nuclear charges of the nuclei
-!! @param[in] Q the total charge of the molecule
-!! @param[in] D the total dipole of the molecule
-!! @param[in] RCM the center of mass of the molecule
+!! @param R A \f$(3,N)\f$ array containing the coordinates of all nuclei
+!! @param Z An \f$(N)\f$ array containing the nuclear charges
+!! @param Q Total charge of the molecule. Default value, unless specified, is \f$Q = 0\f$.
+!! @param mu Total dipole of the molecule. Default value, unless specified, is \f$\bar{\mu}=(0.0,0.0,0.0)\f$.
+!! @param RCM center of mass of the molecule
 subroutine qfit_initialize(R, Z, Q, D, RCM)
 
     use connolly
@@ -74,6 +75,36 @@ subroutine qfit_finalize
 
 end subroutine
 
+!------------------------------------------------------------------------------
+!> @brief sets the total charge of the system
+!!
+!! @author Casper Steinmann
+!!
+!! @details sets the constraint on the total charge of the system
+!! \f$q_\mathrm{tot}=\sum_i q_i\f$
+subroutine qfit_set_total_charge(charge)
+    integer, intent(in) :: charge
+    total_charge = charge
+end subroutine qfit_set_total_charge
+
+!------------------------------------------------------------------------------
+!> @brief Assigns a dipole to QFIT which can be used to enforce constraints
+!!
+!! @author Casper Steinmann
+!! @param mu The dipole to use as a constraint.
+subroutine qfit_set_dipole(mu)
+    real(dp), dimension(3), intent(in) :: mu
+    total_dipole = mu
+end subroutine qfit_set_dipole
+
+!------------------------------------------------------------------------------
+!> @brief Sets a transition dipole to the total dipole.
+!!
+!! Also performs the action of setting the total charge \f$Q\f$ to zero
+!! and setting the nuclear charges to zero.
+!!
+!! @author Casper Steinmann
+!! @param trdip The transition dipole to use as a constraint.
 subroutine qfit_set_transition_dipole( trdip )
     real(dp), dimension(3), intent(in) :: trdip
 
@@ -133,7 +164,8 @@ end subroutine
 !> @brief returns the resulting potential derived charges
 !!
 !! @author Casper Steinmann
-!! @param[out] charges resulting potential derived charges
+!! @param charges Resulting potential derived charges.
+!! @param dipoles Resulting potential derived dipoles.
 subroutine qfit_get_results( charges, dipoles )
 
     real(dp), dimension(:), intent(out) :: charges

@@ -9,8 +9,8 @@ module qfit_io
 !
 !> @brief changes case on input string. Shamelessly stolen from Polarizable Embedding module
 !
-!> @param[in,out] string
-!> @param[in] uplo
+!> @param string
+!> @param uplo
 subroutine change_case(string, uplo)
 
     character(len=*), intent(inout) :: string

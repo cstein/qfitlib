@@ -29,17 +29,15 @@ module connolly
 
 contains
 
-!------------------------------------------------------------------------------
-!> @brief Initialize the connolly grid generation module by specifying
-!!        the tesselation level, nuclear coordinates and charges. Allocates
-!!        memory. This memory needs to be released by a call to connolly_finalize
-!!
-!! @author Casper Steinmann
-!!
-!! @param[in] n tesselation level
-!! @param[in] R array of nuclear coordinates
-!! @param[in] Z array of nuclear charges
-!! @param[out] nmaxpoints the maximum possible number of points required
+  !------------------------------------------------------------------------------
+  !> @brief Initialize the connolly grid generation module by specifying
+  !!        the tesselation level, nuclear coordinates and charges. Allocates
+  !!        memory. This memory needs to be released by a call to connolly_finalize()
+  !!
+  !! @author Casper Steinmann
+  !!
+  !! @param R array of nuclear coordinates
+  !! @param Z array of nuclear charges
 subroutine connolly_initialize( R, Z )
 
     !integer, intent(in) :: n
@@ -134,12 +132,12 @@ end subroutine
 !!
 !! @author Casper Steinmann
 !!
-!! @param[in] rscal scaling factor for the grid for the current layer
-!! @param[in] coordinates coordinates for @b all points on @b all spheres for
-!!                        the current layer 
-!! @param[inout] pinc list of indices whether or not a point in coordinates
+!! @param rscal scaling factor for the grid for the current layer
+!! @param coordinates coordinates for @b all points on @b all spheres for
+!!                        the current layer
+!! @param pinc list of indices whether or not a point in coordinates
 !!                    should be included or not
-!! @param[out] ntruepoints the number of non overlapping points.
+!! @param ntruepoints the number of non overlapping points.
 subroutine connolly_grid_layer( rscal, coordinates, pinc, ntruepoints )
 
     real(dp), intent(in) :: rscal
@@ -211,12 +209,14 @@ subroutine connolly_grid_layer( rscal, coordinates, pinc, ntruepoints )
 end subroutine connolly_grid_layer
 
 !------------------------------------------------------------------------------
-!> @brief Creates a connolly unitsphere at (0,0,0). Surface tesselation is
-!!        input through the connolly_initialize method
+!> @brief Creates a connolly unitsphere at (0,0,0).
+!!
+!! Surface tesselation is input through the connolly_initialize method
 !!
 !! @author Casper Steinmann
 !!
-!! @param[out] coordinates coordinates of the connolly surface tesselation
+!! @param ntes
+!! @param coordinates coordinates of the connolly surface tesselation
 subroutine connolly_sphere( ntes, coordinates )
 
     integer, intent(in) :: ntes
@@ -271,7 +271,7 @@ end subroutine connolly_sphere
 !!
 !! @see the subroutine connolly_grid that generates the grid
 !!
-!! @param[out] number of points on the sphere
+!! @param number of points on the sphere
 subroutine connolly_grid_sphere_count(npoints, nelems)
 
     integer, intent(in) :: npoints
