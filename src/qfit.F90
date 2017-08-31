@@ -34,14 +34,14 @@ module qfit
 !! @param Q Total charge of the molecule. Default value, unless specified, is \f$Q = 0\f$.
 !! @param mu Total dipole of the molecule. Default value, unless specified, is \f$\bar{\mu}=(0.0,0.0,0.0)\f$.
 !! @param RCM center of mass of the molecule
-subroutine qfit_initialize(R, Z, Q, D, RCM)
+subroutine qfit_initialize(R, Z, Q, mu, RCM)
 
     use connolly
 
     real(dp), dimension(:,:), intent(in) :: R
     real(dp), dimension(:), intent(in) :: Z
     integer, intent(in), optional :: Q
-    real(dp), dimension(3), intent(in), optional :: D
+    real(dp), dimension(3), intent(in), optional :: mu
     real(dp), dimension(3), intent(in), optional :: RCM
 
     total_charge = 0
@@ -51,7 +51,7 @@ subroutine qfit_initialize(R, Z, Q, D, RCM)
     call connolly_initialize( R, Z )
 
     if (present(Q)) total_charge = Q
-    if (present(D)) total_dipole = D
+    if (present(D)) total_dipole = mu
     if (present(RCM)) center_of_mass = RCM
 
     allocate( fitted_charges(size(Z)) )

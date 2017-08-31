@@ -5,12 +5,10 @@ module qfit_io
     contains
 
 !------------------------------------------------------------------------------
-!> @author Magnus Olsen
-!
 !> @brief changes case on input string. Shamelessly stolen from Polarizable Embedding module
-!
-!> @param string
-!> @param uplo
+!! @author Magnus Olsen
+!! @param string The string to change case of.
+!! @param uplo Specifies upper case ('U') or lower case ('L').
 subroutine change_case(string, uplo)
 
     character(len=*), intent(inout) :: string
@@ -46,6 +44,13 @@ subroutine change_case(string, uplo)
 
 end subroutine change_case
 
+!------------------------------------------------------------------------------
+!> @brief Opens a filename with specified status and format
+!! @author Magnus Olsen
+!! @param filename Filename to open.
+!! @param lunit The returning file handle.
+!! @param stat Status of file.
+!! @param frmt Format of file.
 subroutine openfile(filename, lunit, stat, frmt)
 
     character(*), intent(in) :: filename, stat, frmt
