@@ -187,7 +187,7 @@ end subroutine
 !> @brief Fit charges to the molecular esp on a number of points
 !!
 !! @author Casper Steinmann
-!! @param[in] density the density of the molecule
+!! @param The square AO density of the molecule.
 subroutine qfit_fit(density)
 
     use connolly
