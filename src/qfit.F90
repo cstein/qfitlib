@@ -161,7 +161,14 @@ subroutine qfit_print_info
 end subroutine
 
 !------------------------------------------------------------------------------
-!> @brief returns the resulting potential derived charges
+!> @brief Returns the resulting potential derived moments.
+!!
+!! The caller provides storage of size \f$N\f$ for the charges and
+!! of size \f$3N\f$ for the dipoles where \f$N\f$ is the number of
+!! atoms used upon input in the qfit_initialize() call.
+!!
+!! The dipole components are organized in the canonical order,
+!! i.e. as \f$\mu_{1,x},\mu_{1,y},\mu_{1,z}, \mu_{2,x}, \ldots, \mu_{N,z}\f$.
 !!
 !! @author Casper Steinmann
 !! @param charges Resulting potential derived charges.
@@ -184,10 +191,10 @@ subroutine qfit_get_results( charges, dipoles )
 end subroutine
 
 !------------------------------------------------------------------------------
-!> @brief Fit charges to the molecular esp on a number of points
+!> @brief Fit charges or multipole moments to the molecular esp on a number of points.
 !!
 !! @author Casper Steinmann
-!! @param The square AO density of the molecule.
+!! @param density The square AO density of the molecule.
 subroutine qfit_fit(density)
 
     use connolly
