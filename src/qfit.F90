@@ -195,20 +195,28 @@ end subroutine
 !!
 !! @author Casper Steinmann
 !! @param density The square AO density of the molecule.
-subroutine qfit_fit(density)
+subroutine qfit_fit(density, lupri)
 
     use connolly
     use qfit_integrals
     use qfit_utilities
     use linear_solver
 
+#if defined(VAR_MPI)
+#if defined(USE_MPI_MOD_F90)
+    use mpi
+#else
+    include 'mpif.h'
+#endif
+#endif
+    ! input arguments
     real(dp), dimension(:), intent(in) :: density
-    !real(dp), dimension(:), intent(out) :: charges
+    integer, optional, intent(in) :: lupri
 
     ! local arrays
     real(dp), dimension(:,:), allocatable :: wrk
     real(dp), dimension(:), allocatable :: integrals
-    real(dp), dimension(:), allocatable :: V, vcharges, vdipoles
+    real(dp), dimension(:), allocatable :: V, Vwrk, vcharges, vdipoles
     real(dp), dimension(:,:), allocatable :: A
     real(dp), dimension(:), allocatable :: b
 
@@ -227,24 +235,29 @@ subroutine qfit_fit(density)
     real(dp) :: factor
     character(len=2) :: option
 
-    ! get dimensions of matrices/vectors according to order of multipole moments
-    ! we always assume charges and dimensionality is nnuclei
-    matdim = nnuclei
-    if (qfit_multipole_rank >= 1) then
-        matdim = matdim + 3*nnuclei
-    endif
-    if (qfit_multipole_rank >= 2) then
-        matdim = matdim + 5*nnuclei
-    endif
+    ! mpi specific variables
+    integer, save :: master, myid, nprocs, ierr
+    integer :: wrk_size
+    integer, allocatable, dimension(:) :: wrk_sizes, displs
 
-    ! set constraints based on options
-    constrain_charges = iand(1,qfit_constraint) .ne. 0
-    constrain_dipoles = iand(2,qfit_constraint) .ne. 0 .and. qfit_multipole_rank .eq. 0
+#if !defined(VAR_MPI)
+    myid = 0
+    master = myid
+    nprocs = 1
+#else
+    if (present(lupri)) luout = lupri
+    call mpi_comm_rank(MPI_COMM_WORLD, myid, ierr)
+    call mpi_comm_size(MPI_COMM_WORLD, nprocs, ierr)
+    master = 0
 
-    ! obtain the number of constraints we need to take into account
-    nconstraints = 0
-    if (constrain_charges) nconstraints = nconstraints +1 ! charges
-    if (constrain_dipoles) nconstraints = nconstraints +3 ! dipoles
+    ! things to broadcast used below
+    call mpi_bcast(nnuclei, 1, MPI_INTEGER, master, MPI_COMM_WORLD, ierr)
+    if (myid.ne.master) then
+        allocate(Zm(nnuclei), Rm(3,nnuclei))
+    endif
+    call mpi_bcast(Zm,  nnuclei, MPI_DOUBLE_PRECISION, master, MPI_COMM_WORLD, ierr)
+    call mpi_bcast(Rm,3*nnuclei, MPI_DOUBLE_PRECISION, master, MPI_COMM_WORLD, ierr)
+#endif
 
     ! Either we generate a grid and dump it to a file so we can read
     ! it back later when fitting for many densities or we read in
@@ -252,62 +265,89 @@ subroutine qfit_fit(density)
 
     ! check if the user (or we) supplied a custom file to be
     ! used to evaluate the molecular electrostatic potential ...
-    if (trim(qfit_mepfile) /= '' ) then
+    if (myid == master) then
+        if (trim(qfit_mepfile) /= '' ) then
 
-        call openfile(trim(qfit_mepfile), lumepinp, 'old', 'formatted')
-        rewind( lumepinp )
+            call openfile(trim(qfit_mepfile), lumepinp, 'old', 'formatted')
+            rewind( lumepinp )
 
-        ! format is classic xyz. title line MUST hold AU or AA
-        read(lumepinp,*) ntotalpoints
-        ntruepoints = ntotalpoints
-        read(lumepinp,*) option
+            ! format is classic xyz. title line MUST hold AU or AA
+            read(lumepinp,*) ntotalpoints
+            ntruepoints = ntotalpoints
+            read(lumepinp,*) option
 
-        factor = one
-        if (trim(option) == 'AA') then
-            factor = aa2au
+            factor = one
+            if (trim(option) == 'AA') then
+                factor = aa2au
+            endif
+            allocate( wrk( 3, ntruepoints) )
+            do m=1, ntruepoints
+                read(lumepinp,*) option, wrk(:,m)
+            enddo
+            wrk = wrk * factor
+        else
+            !
+            ! ... or create a grid around the molecule
+            !
+
+            ! populates the max_layer_points array for memory management
+            ! this requires that options have been set.
+            call connolly_grid_count
+
+            ! calculate the grid surrounding the molecule
+            ntotalpoints = sum(max_layer_points)
+            allocate( wrk( 3, ntotalpoints ) )
+            call connolly_grid( wrk, ntruepoints )
+
+            qfit_mepfile = 'surface.mep'
+            call openfile(qfit_mepfile, lumepinp, 'new', 'formatted')
+            write(lumepinp,*) ntruepoints
+            write(lumepinp,*) 'AU'
+            do m=1,ntruepoints
+                write(lumepinp,*) 'X', wrk(:,m)
+            enddo
         endif
-        allocate( wrk( 3, ntruepoints) )
-        do m=1, ntruepoints
-            read(lumepinp,*) option, wrk(:,m)
-        enddo
-        wrk = wrk * factor
 
+        ! allocate space on master to store entire potential
+        allocate(V(ntruepoints))
+        V = zero
+
+        ! ready arrays for scatter(v) and gather(v)
+        allocate(wrk_sizes(nprocs), displs(nprocs))
+        wrk_sizes = ntruepoints / nprocs
+        displs = 0
+        do n = 1, mod(ntruepoints, nprocs)
+            wrk_sizes(n) = wrk_sizes(n) +1
+        enddo
+        do n = 2, nprocs
+            displs(n) = displs(n-1) + wrk_sizes(n-1)
+        enddo
     else
-        !
-        ! ... or create a grid around the molecule
-        !
-
-        ! populates the max_layer_points array for memory management
-        ! this requires that options have been set.
-        call connolly_grid_count
-
-        ! calculate the grid surrounding the molecule
-        ntotalpoints = sum(max_layer_points)
-        allocate( wrk( 3, ntotalpoints ) )
-        call connolly_grid( wrk, ntruepoints )
-
-        qfit_mepfile = 'surface.mep'
-        call openfile(qfit_mepfile, lumepinp, 'new', 'formatted')
-        write(lumepinp,*) ntruepoints
-        write(lumepinp,*) 'AU'
-        do m=1,ntruepoints
-            write(lumepinp,*) 'X', wrk(:,m)
-        enddo
+        ! allocate dummy sizes on slaves
+        allocate(wrk_sizes(1), displs(1))
     endif
+#if defined(VAR_MPI)
+    call mpi_scatter(wrk_sizes, 1, MPI_INTEGER, wrk_size, 1, MPI_INTEGER, &
+                   & master, MPI_COMM_WORLD, ierr)
+    if (myid.ne.master) then
+        allocate(wrk(3,wrk_size))
+    endif
+    call mpi_scatterv(wrk(1,:), wrk_sizes, displs, MPI_DOUBLE_PRECISION, &
+                    & wrk(1,:), wrk_size, MPI_DOUBLE_PRECISION, &
+                    & master, MPI_COMM_WORLD, ierr)
+    call mpi_scatterv(wrk(2,:), wrk_sizes, displs, MPI_DOUBLE_PRECISION, &
+                    & wrk(2,:), wrk_size, MPI_DOUBLE_PRECISION, &
+                    & master, MPI_COMM_WORLD, ierr)
+    call mpi_scatterv(wrk(3,:), wrk_sizes, displs, MPI_DOUBLE_PRECISION, &
+                    & wrk(3,:), wrk_size, MPI_DOUBLE_PRECISION, &
+                    & master, MPI_COMM_WORLD, ierr)
+#else
+    wrk_size = ntruepoints
+#endif
 
-    ! allocate space for evaluating the potential on those points
-    allocate( V( ntruepoints ) )
-    V = zero
-
-    ! allocate space for setting up the system of linear equations
-    allocate( A( matdim+nconstraints, matdim+nconstraints ) )
-    allocate( b( matdim+nconstraints ) )
-    A = zero
-    b = zero
-
-    ! allocate space for the charges
-    allocate( charges( matdim + nconstraints ) )
-    charges = zero
+    ! work array for potentials
+    allocate(Vwrk(wrk_size))
+    Vwrk = zero
 
     ! integral memory
     n2bas = size( density )
@@ -317,118 +357,160 @@ subroutine qfit_fit(density)
     ! we need integrals of electronic density, hence -1
     q_one = -one
 
-    do k = 1, ntruepoints
+    do k = 1, wrk_size
         call one_electron_integrals( q_one, wrk(:,k), integrals)
-        V(k) = dot( density, integrals )
+        Vwrk(k) = dot( density, integrals )
         do m = 1, nnuclei
             dr = Rm(:,m) - wrk(:,k)
             Rmk = sqrt( dot( dr, dr ) )
-            V(k) = V(k) + Zm(m) / Rmk
+            Vwrk(k) = Vwrk(k) + Zm(m) / Rmk
         enddo
     enddo
 
-    call a_qq(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
-    if (qfit_multipole_rank >= 1) then
-        call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
-        call a_qd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
-        call a_qd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
+#if defined(VAR_MPI)
+    call mpi_gatherv(Vwrk, wrk_size, MPI_DOUBLE_PRECISION, &
+                   & V, wrk_sizes, displs, MPI_DOUBLE_PRECISION, &
+                   & master, MPI_COMM_WORLD, ierr)
+#else
+    V = Vwrk
+#endif
+    ! clean-up thread storage not needed anymore
+    deallocate(integrals, Vwrk, displs, wrk_sizes)
+    if (myid.ne.master) then
+        deallocate(Zm, Rm)
     endif
-    ! populate A matrix and b vector with charge <-> surface interaction
 
-    ! add constraints to A matrix and b vector
-    do m = 1, nconstraints
-        ioff = m+matdim
-
-        ! constrain total charge to be constant
-        if( m .eq. 1 .and. constrain_charges ) then
-            b(ioff) = total_charge
-            do n=1,nnuclei ! must be nnuclei here because we only constrain charges
-                A(ioff,n) = one
-                A(n,ioff) = one
-            enddo
+    ! get dimensions of matrices/vectors according to order of multipole moments
+    ! we always assume charges and dimensionality is nnuclei
+    if (myid.eq.master) then
+        matdim = nnuclei
+        if (qfit_multipole_rank >= 1) then
+            matdim = matdim + 3*nnuclei
+        endif
+        if (qfit_multipole_rank >= 2) then
+            matdim = matdim + 5*nnuclei
         endif
 
-        ! also constrain dipole
-        if ( m .gt. 1 .and. m .le. 4 .and. constrain_dipoles ) then
-            b(ioff) = total_dipole(m-1)
-            do n=1,nnuclei
-                A(ioff,n) = Rm(m-1,n) - center_of_mass(m-1)
-                A(n,ioff) = Rm(m-1,n) - center_of_mass(m-1)
-            enddo
+        ! set constraints based on options
+        constrain_charges = iand(1,qfit_constraint) .ne. 0
+        constrain_dipoles = iand(2,qfit_constraint) .ne. 0 ! .and. qfit_multipole_rank .eq. 0
+
+        ! obtain the number of constraints we need to take into account
+        nconstraints = 0
+        if (constrain_charges) nconstraints = nconstraints +1 ! charges
+        if (constrain_dipoles) nconstraints = nconstraints +3 ! dipoles
+
+        ! allocate space for setting up the system of linear equations
+        allocate( A( matdim+nconstraints, matdim+nconstraints ) )
+        allocate( b( matdim+nconstraints ) )
+        A = zero
+        b = zero
+
+        ! allocate space for the charges
+        allocate( charges( matdim + nconstraints ) )
+        charges = zero
+        write(*,*) 'CSS: MATDIM', matdim, nconstraints, constrain_charges, constrain_dipoles
+
+
+        call a_qq(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
+        if (qfit_multipole_rank >= 1) then
+            call a_dd(A(nnuclei+1:4*nnuclei, nnuclei+1:4*nnuclei), b(nnuclei+1:4*nnuclei), V, wrk)
+            call a_qd(A(nnuclei+1:4*nnuclei, 1:nnuclei), V, wrk)
+            call a_qd(A(1:nnuclei, nnuclei+1:4*nnuclei), V, wrk)
         endif
-    enddo
+        ! populate A matrix and b vector with charge <-> surface interaction
 
-    if (qfit_debug) then
-        matsiz = matdim+nconstraints
-        write(luout,*)
-        nbas = int(sqrt(real(n2bas)))
-        write(luout,*) "Input Density:"
-        call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
+        ! add constraints to A matrix and b vector
+        do m = 1, nconstraints
+            ioff = m+matdim
 
-        write(luout,*) "Integrals:"
-        call output(integrals,1,nbas,1,nbas,nbas,nbas,1,luout)
-
-        write(luout,*)
-        write(luout,*) "Geometric Matrix (A):"
-        call output(A,1,matsiz,1,matsiz,matsiz,matsiz,1,luout)
-
-        write(luout,*)
-        write(luout,*) "Potential Vector (b):"
-        call output(B,1,matsiz,1,1,matsiz,1,1,luout)
-    endif
-
-    ! solve the system of linear equations Ax = b using SVD
-    call linear_solve_svd( A, b, charges )
-
-    ! return the resulting charges ignoring any constraints
-    fitted_charges = charges(1:nnuclei)
-    if (qfit_multipole_rank >= 1 ) then
-        fitted_dipoles = charges(nnuclei+1:4*nnuclei)
-    endif
-
-
-    ! lets do some statistics
-    allocate(vcharges(ntruepoints))
-    allocate(vdipoles(ntruepoints))
-    vcharges = zero
-    vdipoles = zero
-    do k = 1, ntruepoints
-        do m = 1, nnuclei
-            dr = Rm(:,m) - wrk(:,k)
-            Rmk = sqrt( dot( dr, dr ) )
-            vcharges(k) = vcharges(k) + fitted_charges(m) / Rmk
-            if (qfit_multipole_rank >= 1) then
-                drhat = dr / Rmk
-                mu(1) = fitted_dipoles(m)
-                mu(2) = fitted_dipoles(m+nnuclei)
-                mu(3) = fitted_dipoles(m+2*nnuclei)
-
-                vdipoles(k) = vdipoles(k) + dot(drhat, mu) / (Rmk*Rmk)
+            ! constrain total charge to be constant
+            if( m .eq. 1 .and. constrain_charges ) then
+                b(ioff) = total_charge
+                do n=1,nnuclei ! must be nnuclei here because we only constrain charges
+                    A(ioff,n) = one
+                    A(n,ioff) = one
+                enddo
             endif
 
+            ! also constrain dipole
+            if ( m .gt. 1 .and. m .le. 4 .and. constrain_dipoles ) then
+                b(ioff) = total_dipole(m-1)
+                do n=1,nnuclei
+                    A(ioff,n) = Rm(m-1,n) - center_of_mass(m-1)
+                    A(n,ioff) = Rm(m-1,n) - center_of_mass(m-1)
+                enddo
+            endif
         enddo
+
         if (qfit_debug) then
-            write(luout,'(A,4F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), vcharges(k), vdipoles(k), vcharges(k) + vdipoles(k)
+            matsiz = matdim+nconstraints
+            write(luout,*)
+            nbas = int(sqrt(real(n2bas)))
+            write(luout,*) "Input Density:"
+            call output(density,1,nbas,1,nbas,nbas,nbas,1,luout)
+
+            write(luout,*)
+            write(luout,*) "Geometric Matrix (A):"
+            call output(A,1,matsiz,1,matsiz,matsiz,matsiz,1,luout)
+
+            write(luout,*)
+            write(luout,*) "Potential Vector (b):"
+            call output(B,1,matsiz,1,1,matsiz,1,1,luout)
         endif
-        V(k) = V(k) - (vcharges(k) + vdipoles(k))
-        V(k) = V(k)*V(k)
-    enddo
-    if (qfit_verbose) then
+
+        ! solve the system of linear equations Ax = b using SVD
+        !call linear_solve_svd( A, b, charges )
+        call linear_solve_simple(A, b, charges)
+        !call fcho_solve(A, b, charges)
+
+        ! return the resulting charges ignoring any constraints
+        fitted_charges = charges(1:nnuclei)
+        if (qfit_multipole_rank >= 1 ) then
+            fitted_dipoles = charges(nnuclei+1:4*nnuclei)
+        endif
+
+
+        ! lets do some statistics
+        allocate(vcharges(ntruepoints))
+        allocate(vdipoles(ntruepoints))
+        vcharges = zero
+        vdipoles = zero
+        do k = 1, ntruepoints
+            do m = 1, nnuclei
+                dr = Rm(:,m) - wrk(:,k)
+                Rmk = sqrt( dot( dr, dr ) )
+                vcharges(k) = vcharges(k) + fitted_charges(m) / Rmk
+                if (qfit_multipole_rank >= 1) then
+                    drhat = dr / Rmk
+                    mu(1) = fitted_dipoles(m)
+                    mu(2) = fitted_dipoles(m+nnuclei)
+                    mu(3) = fitted_dipoles(m+2*nnuclei)
+
+                    vdipoles(k) = vdipoles(k) + dot(drhat, mu) / (Rmk*Rmk)
+                endif
+
+            enddo
+            if (qfit_debug) then
+                write(luout,'(A,4F16.10)') "Vqm, Vq, Vd, Vtot = ", V(k), vcharges(k), vdipoles(k), vcharges(k) + vdipoles(k)
+            endif
+            V(k) = V(k) - (vcharges(k) + vdipoles(k))
+            V(k) = V(k)*V(k)
+        enddo
         write(luout, '(/A,F9.6)') "@ RMSE of fitted ESP = ", sqrt( sum( V ) / ntruepoints )
-    endif
-    deallocate( vcharges )
-    deallocate( vdipoles )
+        deallocate( vcharges )
+        deallocate( vdipoles )
 
-    deallocate( integrals )
-    deallocate( charges )
-    deallocate( b )
-    deallocate( A )
-    deallocate( V )
-    deallocate( wrk )
+        deallocate( charges )
+        deallocate( b )
+        deallocate( A )
+        deallocate( V )
+        deallocate( wrk )
 
-    if (trim(qfit_mepfile) /= '' ) then
-        inquire(unit=lumepinp, opened=lunit_open)
-        if (lunit_open) close( lumepinp )
+        if (trim(qfit_mepfile) /= '' ) then
+            inquire(unit=lumepinp, opened=lunit_open)
+            if (lunit_open) close( lumepinp )
+        endif
     endif
 
 end subroutine qfit_fit

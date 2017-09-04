@@ -12,8 +12,54 @@ module linear_solver
     private
 
     public :: linear_solve_svd
+    public :: linear_solve_simple
 
 contains
+
+subroutine linear_solve_simple(A, b, x)
+
+    external :: dgetrf, dgetrs
+
+    real(dp), dimension(:,:), intent(in) :: A
+    real(dp), dimension(:), intent(in) :: b
+    real(dp), dimension(:), intent(out) :: x
+
+    integer :: na, info, i
+    real(dp), dimension(:,:), allocatable :: wrk
+
+    integer, dimension(:), allocatable :: o_piv
+
+    x = 0.0_dp
+    na = size(A,dim=1)
+    if (na.ne.size(A,dim=2)) then
+        stop 'ERROR [solve]: Matrix A is not square.'
+    endif
+    allocate(wrk(na,na))
+    wrk = A
+    do i = 1, na
+        wrk(i,i) = wrk(i,i) + 0.0000001_dp
+    enddo
+
+    allocate(o_piv(na))
+    call output(wrk,1,na,1,na,na,na,1,luout)
+    call dgetrf(na, na, wrk, na, o_piv, info)
+    if (info<0) then
+        print *, "call to dgetrf failed. parameter",-info," wrong."
+    elseif (info>0) then
+        print *, "call to dgetrf failed: ",info
+    endif
+    x(:na) = b(:na)
+    call dgetrs('N', na, 1, wrk, na, o_piv, x,na,info)
+    if (info<0) then
+        print *, "call to dgetrs failed. parameter",-info," wrong."
+    elseif (info>0) then
+        print *, "call to dgetrs failed: ",info
+    endif
+    deallocate(o_piv)
+    deallocate(wrk)
+
+end subroutine linear_solve_simple
+
 
 !> @brief Solve system of linear equations Ax = b using an SVD approach
 !!
