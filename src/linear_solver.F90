@@ -41,7 +41,6 @@ subroutine linear_solve_simple(A, b, x)
     enddo
 
     allocate(o_piv(na))
-    call output(wrk,1,na,1,na,na,na,1,luout)
     call dgetrf(na, na, wrk, na, o_piv, info)
     if (info<0) then
         print *, "call to dgetrf failed. parameter",-info," wrong."
