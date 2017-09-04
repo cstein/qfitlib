@@ -409,7 +409,6 @@ subroutine qfit_fit(density, lupri)
         ! allocate space for the charges
         allocate( charges( matdim + nconstraints ) )
         charges = zero
-        write(*,*) 'CSS: MATDIM', matdim, nconstraints, constrain_charges, constrain_dipoles
 
 
         call a_qq(A(1:nnuclei,1:nnuclei), b(1:nnuclei), V, wrk)
