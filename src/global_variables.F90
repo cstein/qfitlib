@@ -7,7 +7,7 @@ module qfit_variables
 
     implicit none
 
-    !> whether or not we are running MBLIB.
+    !> whether or not we are running QFIT.
     logical, save :: qfitrun = .false.
     !> whether or not to be more verbose with output
     logical, save :: qfit_verbose = .false.
@@ -31,7 +31,7 @@ module qfit_variables
     real(dp), dimension(3), save :: center_of_mass
 
     ! matrix dimension
-    integer, save :: matdim
+    !integer, save :: matdim
 
     !
     ! Run-time settings to be read in from input
