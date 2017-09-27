@@ -25,15 +25,13 @@ read(ip,*) natoms
 read(ip,*) title
 
 cm = zero
-d = zero
+d = (/0.50839, 0.47158, 0.54270/)
 tmass = zero
 
 allocate( R(3, natoms ) )
 allocate( Z(natoms) )
 allocate( nucz(natoms) )
 allocate( mass(natoms) )
-
-tmass = zero
 
 do k = 1, natoms
     read( ip, *) Z(k), R(:,k)
@@ -52,13 +50,16 @@ do k = 1, natoms
     cm = cm + R(:,k)*mass(k)
     tmass = tmass + mass(k)
 enddo
+cm = cm / tmass
 
 R = R * aa2au
 
 qfit_debug = .true.
-qfit_multipole_rank = 2
+qfit_multipole_rank = 0
 qfit_vdwscale = 1.0
 qfit_nshell = 4
+qfit_constraint = 3
+!qfit_mepfile = 'surface.mep'
 call qfit_initialize( R, nucz, 0, d, cm )
 call qfit_print_info()
 allocate( dummy_dens(144) )
