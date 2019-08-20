@@ -54,12 +54,15 @@ subroutine dalton_input(word, luinp, lupri)
             &   option == 'DIPOLE') then
 
                 if (option == 'NONE') then
+                    qfit_constraint = -1
+                endif
+
+                if (option == 'CHARGE') then
                     qfit_constraint = 0
                 endif
 
-                ! default is 1 which means charge
                 if (option == 'DIPOLE') then
-                    qfit_constraint = 3 ! 1 + 2
+                    qfit_constraint = 1
                 endif
 
             else

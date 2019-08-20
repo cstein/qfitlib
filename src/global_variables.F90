@@ -45,13 +45,12 @@ module qfit_variables
     !> 2: charges + dipoles + quadrupoles
     !> default: 0, charges.
     integer, save :: qfit_multipole_rank = 0
-    !> bitwise additive option for constraints
-    !> 0: nothing
-    !> 1: charges
-    !> 2: dipole
-    !> 4: quadrupole
-    !> default: 1. To select charges and dipoles, use 1+2 = 3
-    integer, save :: qfit_constraint = 1
+    !> constraint used on multipoles
+    !> -1: nothing
+    !>  0: charges
+    !>  1: dipole
+    !> default: 0.
+    integer, save :: qfit_constraint = 0 ! default is charges
     !> the scaling factor for the van der waal radii
     real(dp), save :: qfit_vdwscale = 1.4_dp
     !> the increment in scaling factor for each layer
@@ -78,8 +77,10 @@ module qfit_variables
     real(dp), save, allocatable, dimension(:) :: fitted_charges
     !> the resulting dipoles
     real(dp), save, allocatable, dimension(:) :: fitted_dipoles
-    !> the resulting traceless quadrupoles
+    !> the resulting quadrupoles
     real(dp), save, allocatable, dimension(:) :: fitted_quadrupoles
+    !> the resulting RMSD value of the fit
+    real(dp), save :: rmsd_esp_fit
 
     ! constants
     !> @f$ \pi @f$
