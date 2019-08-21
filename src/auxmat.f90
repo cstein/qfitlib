@@ -102,32 +102,12 @@ subroutine geom_mat(r_mol, r_mep, v_mep, order, A, B)
   allocate(Aaux(ndim, nmep))
   call auxvec(r_mol, r_mep, v_mep, order, Aaux, B)
   A = matmul(Aaux, transpose(Aaux))
-
   deallocate(Aaux)
 
 end subroutine geom_mat
 
-
-
-subroutine center_of_charge(r, z, c)
-  implicit none
-  double precision, dimension(:,:), intent(in) :: r
-  double precision, dimension(:), intent(in) :: z
-  double precision, dimension(3), intent(out) :: c
-
-  integer :: i, nat, zsum, zval
-  c = 0.0d0
-  zsum = 0
-
-  nat = size(r,2)
-  do i = 1, nat
-      zsum = zsum + z(i)
-      c(:) = c(:) + r(1:3,i) * z(i)
-  enddo
-  c = c / zsum
-end subroutine
-
 subroutine constr_mat(r_mol, z_mol, constr, constr_q, constr_d, ndim, cdim, A, B)
+  use qfit_variables, only : center_of_mass
   implicit none
   double precision, intent(in), dimension(:,:) :: r_mol
   double precision, intent(in), dimension(:) :: z_mol
@@ -141,8 +121,6 @@ subroutine constr_mat(r_mol, z_mol, constr, constr_q, constr_d, ndim, cdim, A, B
 
   integer :: nat
   integer :: i, j
-  double precision, dimension(3) :: dipole_origin
-  call center_of_charge(r_mol, z_mol, dipole_origin)
   nat = size(r_mol, 2)
   do i = 1, cdim
     if (constr >= 0 .and. i.eq.1) then
@@ -152,7 +130,7 @@ subroutine constr_mat(r_mol, z_mol, constr, constr_q, constr_d, ndim, cdim, A, B
     endif
     if (constr >= 1 .and. i.gt.1) then
       do j = 1, nat
-        A(j, ndim + i) = dipole_origin(i-1) - r_mol(i-1,j)
+        A(j, ndim + i) = center_of_mass(i-1) - r_mol(i-1,j)
         A(ndim + i, j) = A(j, ndim +i)
       enddo
       B(ndim + i) = constr_d(i-1)
