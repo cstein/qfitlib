@@ -7,7 +7,7 @@ module qfit_variables
 
     implicit none
 
-    !> whether or not we are running MBLIB.
+    !> whether or not we are running QFIT.
     logical, save :: qfitrun = .false.
     !> whether or not to be more verbose with output
     logical, save :: qfit_verbose = .false.
@@ -30,19 +30,27 @@ module qfit_variables
     !> center of mass of the molecule
     real(dp), dimension(3), save :: center_of_mass
 
+    ! matrix dimension
+    !integer, save :: matdim
+
     !
     ! Run-time settings to be read in from input
     !
     !> unit to write to for output (default is stdout)
     integer, save :: luout = 6
 
-    !> bitwise additive option for constraints
-    !> 0: nothing
-    !> 1: charges
-    !> 2: dipole
-    !> 4: quadrupole
-    !> default: 1. To select charges and dipoles, use 1+2 = 3
-    integer, save :: qfit_constraint = 1
+    !> largest multipole moment rank used in fitting
+    !> 0: charges
+    !> 1: charges + dipoles
+    !> 2: charges + dipoles + quadrupoles
+    !> default: 0, charges.
+    integer, save :: qfit_multipole_rank = 0
+    !> constraint used on multipoles
+    !> -1: nothing
+    !>  0: charges
+    !>  1: dipole
+    !> default: 0.
+    integer, save :: qfit_constraint = 0 ! default is charges
     !> the scaling factor for the van der waal radii
     real(dp), save :: qfit_vdwscale = 1.4_dp
     !> the increment in scaling factor for each layer
@@ -53,9 +61,6 @@ module qfit_variables
     real(dp), save :: qfit_pointdensity = 0.28_dp
     !> optional file on which we are to evaluate the mep
     character(len=80), save :: qfit_mepfile = ''
-    !> whether or not to only evaluate the molecular electrostatic potential.
-    !> this will skip any fitting
-    logical, save :: qfit_only_calculate_mep = .false.
     !> remove values from the SVD subspace if lower than this value
     real(dp) :: qfit_eps = 0.0005_dp
 
@@ -70,6 +75,12 @@ module qfit_variables
     integer, save :: n_total_points
     !> the resulting charges
     real(dp), save, allocatable, dimension(:) :: fitted_charges
+    !> the resulting dipoles
+    real(dp), save, allocatable, dimension(:) :: fitted_dipoles
+    !> the resulting quadrupoles
+    real(dp), save, allocatable, dimension(:) :: fitted_quadrupoles
+    !> the resulting RMSD value of the fit
+    real(dp), save :: rmsd_esp_fit
 
     ! constants
     !> @f$ \pi @f$
@@ -82,7 +93,7 @@ module qfit_variables
         & 1.20_dp, &
         & 1.20_dp, 1.20_dp, 1.37_dp, 1.45_dp, &
         & 1.45_dp, 1.50_dp, 1.50_dp, 1.40_dp, &
-        & 0.00_dp, 0.00_dp, 0.00_dp, 1.50_dp, &
+        & 1.35_dp, 0.00_dp, 0.00_dp, 1.50_dp, &
         & 0.00_dp, 0.00_dp, 0.00_dp, 1.80_dp /)
 
 

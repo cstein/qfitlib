@@ -19,11 +19,11 @@ module qfit_integrals
 !!
 !! @author Casper Steinmann
 !!
-!! @param[in] charges Charges of the nuclei
-!! @param[in] coords Coordinates of the nuclei
-!! @param[out] integrals the one-electron contribution
+!! @param charges Charges of the nuclei.
+!! @param coord Coordinate of the surface point \f$\mathbf{R}_A\f$ where the potential integrals are evaluated.
+!! @param integrals The resulting one-electron potential integrals.
 !!
-!! @details 
+!! @details
 !! @f[
 !!   V_{\mu\nu} = \big \langle \mu \big| \frac{Z_A}{|\mathbf{r}-\mathbf{R}_A|} \big| \nu \big\rangle
 !! @f]

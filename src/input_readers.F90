@@ -54,12 +54,15 @@ subroutine dalton_input(word, luinp, lupri)
             &   option == 'DIPOLE') then
 
                 if (option == 'NONE') then
+                    qfit_constraint = -1
+                endif
+
+                if (option == 'CHARGE') then
                     qfit_constraint = 0
                 endif
 
-                ! default is 1 which means charge
                 if (option == 'DIPOLE') then
-                    qfit_constraint = 3 ! 1 + 2
+                    qfit_constraint = 1
                 endif
 
             else
@@ -91,8 +94,8 @@ subroutine dalton_input(word, luinp, lupri)
         else if (trim(option(2:)) == 'MEPFIL') then
             read(luinp,*) qfit_mepfile
 
-        else if (trim(option(2:)) == 'ONLMEP') then
-            qfit_only_calculate_mep = .true.
+        else if (trim(option(2:)) == 'MPRANK') then
+            read(luinp,*) qfit_multipole_rank
 
         ! verbose output
         else if (trim(option(2:)) == 'VERBOS') then

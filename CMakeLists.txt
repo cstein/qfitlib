@@ -154,6 +154,9 @@ set(SOURCES_LIBRARY
     ${PROJECT_SOURCE_DIR}/src/integrals.F90
     ${PROJECT_SOURCE_DIR}/src/utilities.F90
     ${PROJECT_SOURCE_DIR}/src/io.F90
+    ${PROJECT_SOURCE_DIR}/src/auxmat.f90
+    ${PROJECT_SOURCE_DIR}/src/pot.f90
+    ${PROJECT_SOURCE_DIR}/src/tensor.f90
     ${PROJECT_SOURCE_DIR}/src/printpkg.F
     )
 
