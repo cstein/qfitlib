@@ -127,13 +127,13 @@ subroutine qfit_print_info
     use qfit_variables
 
     if (qfit_multipole_rank .eq. 2) then
-        write(luout, 16) 'charges, dpioles and quadrupoles'
+        write(luout, 16) 'charges, dipoles and quadrupoles'
     elseif (qfit_multipole_rank .eq. 1) then
         write(luout, 16) 'charges and dipoles'
     elseif (qfit_multipole_rank .eq. 0) then
         write(luout, 16) 'charges'
     else
-        write(luout, '(/10x,a)') 'WARNING: multipole order not understood.'
+        write(luout, '(/10x,a,i0,a)') 'WARNING: multipole order ',qfit_multipole_rank,' not understood.'
     endif
 
     if (trim(qfit_mepfile) /= '') then
@@ -252,16 +252,20 @@ subroutine qfit_fit(density, lupri)
     real(dp) :: factor
     character(len=2) :: option
 
-    ! mpi specific variables
-    integer, save :: master, myid, nprocs, ierr
+#if !defined(VAR_MPI)
+    integer, save :: master, myid, nprocs
     integer :: wrk_size
     integer, allocatable, dimension(:) :: wrk_sizes, displs
 
-#if !defined(VAR_MPI)
     myid = 0
     master = myid
     nprocs = 1
 #else
+    ! mpi specific variables
+    integer(kind=MPI_INTEGER_KIND), save :: master, myid, nprocs, ierr
+    integer(kind=MPI_INTEGER_KIND) :: wrk_size
+    integer(kind=MPI_INTEGER_KIND), allocatable, dimension(:) :: wrk_sizes, displs
+
     if (present(lupri)) luout = lupri
     call mpi_comm_rank(MPI_COMM_WORLD, myid, ierr)
     call mpi_comm_size(MPI_COMM_WORLD, nprocs, ierr)
