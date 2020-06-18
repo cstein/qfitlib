@@ -1,9 +1,9 @@
 #if(NOT DEFINED DEFAULT_Fortran_FLAGS_SET)
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES GNU) # this is gfortran
-    set(CMAKE_Fortran_FLAGS         "-fbacktrace -cpp")
-    set(CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -ffast-math -funroll-loops -ftree-vectorize")
+    set(CMAKE_Fortran_FLAGS         "${CMAKE_Fortran_FLAGS} -fbacktrace -cpp")
+    set(CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -g")
+    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -ffast-math -funroll-loops -ftree-vectorize")
     if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
         set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -m64")
     endif()
@@ -30,9 +30,9 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES GNU) # this is gfortran
 endif()
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES G95)
-    set(CMAKE_Fortran_FLAGS         "-cpp -fno-second-underscore -ftrace=full")
-    set(CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -fsloppy-char")
+    set(CMAKE_Fortran_FLAGS         "${CMAKE_Fortran_FLAGS} -cpp -fno-second-underscore -ftrace=full")
+    set(CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -g")
+    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -fsloppy-char")
     if(ENABLE_64BIT_INTEGERS)
         set(CMAKE_Fortran_FLAGS
             "${CMAKE_Fortran_FLAGS} -i8"
@@ -52,9 +52,9 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES G95)
 endif()
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES Intel)
-    set(CMAKE_Fortran_FLAGS         "-fpp -assume byterecl -traceback")
-    set(CMAKE_Fortran_FLAGS_DEBUG   "-g -O0")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -ip")
+    set(CMAKE_Fortran_FLAGS         "${CMAKE_Fortran_FLAGS} -fpp -assume byterecl -traceback")
+    set(CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -g -O0")
+    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -ip")
     if(DEFINED MKL_FLAG)
         set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} ${MKL_FLAG}")
     endif()
@@ -85,9 +85,9 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES Intel)
 endif()
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES PGI)
-    set(CMAKE_Fortran_FLAGS         "-mcmodel=medium -Mpreprocess")
-    set(CMAKE_Fortran_FLAGS_DEBUG   "-g -O0 -Mframe")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-O3 -fast -Munroll")
+    set(CMAKE_Fortran_FLAGS         "${CMAKE_Fortran_FLAGS} -mcmodel=medium -Mpreprocess")
+    set(CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -g -O0 -Mframe")
+    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -O3 -fast -Munroll")
     if(ENABLE_64BIT_INTEGERS)
         set(CMAKE_Fortran_FLAGS
             "${CMAKE_Fortran_FLAGS} -i8 -i8storage"
@@ -105,9 +105,9 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES PGI)
 endif()
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES XL)
-    set(CMAKE_Fortran_FLAGS         "-qzerosize -qextname -qfree -qlanglvl=extended -qinit=f90ptr")
-    set(CMAKE_Fortran_FLAGS_DEBUG   "-g")
-    set(CMAKE_Fortran_FLAGS_RELEASE "-qstrict -O3")
+    set(CMAKE_Fortran_FLAGS         "${CMAKE_Fortran_FLAGS} -qzerosize -qextname -qfree -qlanglvl=extended -qinit=f90ptr")
+    set(CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -g")
+    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} -qstrict -O3")
     if(ENABLE_64BIT_INTEGERS)
         set(CMAKE_Fortran_FLAGS
             "${CMAKE_Fortran_FLAGS} -q64"
@@ -128,9 +128,9 @@ endif()
 
 if(CMAKE_Fortran_COMPILER_ID MATCHES Cray) 
     add_definitions(-DVAR_CRAY)
-    set(CMAKE_Fortran_FLAGS         "-eZ")
-    set(CMAKE_Fortran_FLAGS_DEBUG   "-O0 -g")
-    set(CMAKE_Fortran_FLAGS_RELEASE " ")
+    set(CMAKE_Fortran_FLAGS         "${CMAKE_Fortran_FLAGS} -eZ")
+    set(CMAKE_Fortran_FLAGS_DEBUG   "${CMAKE_Fortran_FLAGS_DEBUG} -O0 -g")
+    set(CMAKE_Fortran_FLAGS_RELEASE "${CMAKE_Fortran_FLAGS_RELEASE} ")
     if(ENABLE_64BIT_INTEGERS)
         set(CMAKE_Fortran_FLAGS
             "${CMAKE_Fortran_FLAGS} -s integer64"
