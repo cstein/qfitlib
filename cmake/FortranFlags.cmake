@@ -7,7 +7,7 @@ if(CMAKE_Fortran_COMPILER_ID MATCHES GNU) # this is gfortran
     if(CMAKE_Fortran_COMPILER_VERSION VERSION_GREATER 10.0.0)
         set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -fallow-argument-mismatch")
     endif()
-    if(${CMAKE_HOST_SYSTEM_PROCESSOR} MATCHES "x86_64")
+    if(${CMAKE_SYSTEM_PROCESSOR} MATCHES "x86_64")
         set(CMAKE_Fortran_FLAGS "${CMAKE_Fortran_FLAGS} -m64")
     endif()
     if(ENABLE_STATIC_LINKING)
